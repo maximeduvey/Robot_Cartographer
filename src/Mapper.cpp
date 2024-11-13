@@ -1,10 +1,15 @@
 
 #include "Mapper.h"
 
+#include <fstream>
+#include <vector>
+#include <iostream>
+
 Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
                float startAngleManaged /*= MAPPER_MIN_FIELD_VIEW*/,
                float endFieldOfView /* = MAPPER_MAX_FIELD_VIEW*/)
 {
+    std::cout << TAG << std::endl;
     setManagedAngleFieldOFView(startAngleManaged, endFieldOfView);
     _end.store(false);
     _occupancy_grid = std::vector<std::vector<std::pair<bool, int>>>(
@@ -19,17 +24,20 @@ Mapper::~Mapper()
 
 void Mapper::setManagedAngleFieldOFView(float startAngleManaged, float endAngleManaged)
 {
+    std::cout << TAG << std::endl;
     _startAngleManaged = startAngleManaged;
     _endAngleManaged = endAngleManaged;
 }
 
 void Mapper::setMapInfos(MapSpatialInfos map /*  = MapSpatialInfos() */)
 {
+    std::cout << TAG << std::endl;
     _map = map;
 }
 
 void Mapper::startDataParsing()
 {
+    std::cout << TAG << std::endl;
     _end.store(false);
     _parserData = std::thread(&Mapper::loop_parseFieldPoints, this);
     _parserData.detach();
@@ -55,8 +63,36 @@ void Mapper::setNoiseFilterNbrCorelationPoint(int nbr)
     _noiseFilter_nbrCorelationPoint.store(nbr);
 }
 
+
+void Mapper::saveOccupancyGridToFile(const std::string& filename) {
+    _mutextDataToParse.lock();
+    std::ofstream outFile(filename);
+    if (!outFile.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    for (const auto& row : _occupancy_grid) {
+        for (const auto& cell : row) {
+            if (cell.first) {
+                outFile << "[x] ";  // Occupied
+            } else {
+                outFile << "[ ] ";  // Free
+            }
+        }
+        outFile << "\n";
+    }
+
+    outFile.close();
+    std::cout << "Occupancy grid saved to " << filename << std::endl;
+    _mutextDataToParse.unlock();
+}
+
+
 void Mapper::loop_parseFieldPoints(Mapper *myself)
 {
+    
+    std::cout << TAG << std::endl;
     while (myself->_end.load() != true)
     {
         myself->_mutextDataToParse.lock();
@@ -65,12 +101,15 @@ void Mapper::loop_parseFieldPoints(Mapper *myself)
         if (nbr > 0)
         {
             myself->_mutextDataToParse.lock();
+            std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
             for (const auto &fieldpoints : myself->_dataToParse)
             {
                 for (const auto &point : fieldpoints.points) {
                     myself->parsePointToMap_pointsAreRelativeToRobot(point);
                 }
             }
+            myself->_dataToParse.clear();
+            std::cout << TAG << "after" << myself->_dataToParse.size() << std::endl;
             myself->_mutextDataToParse.unlock();
         }
         else
@@ -82,6 +121,7 @@ void Mapper::loop_parseFieldPoints(Mapper *myself)
 
 void Mapper::addDataToParse(const FieldPoints &fieldPoints)
 {
+    std::cout << TAG << std::endl;
     _mutextDataToParse.lock();
     _dataToParse.push_back(fieldPoints);
     _mutextDataToParse.unlock();
@@ -91,6 +131,7 @@ void Mapper::addDataToParse(const FieldPoints &fieldPoints)
 /// @param point
 void Mapper::parsePointToMap_pointsAreRelativeToRobot(const Point &point)
 {
+    //std::cout << TAG << std::endl;
     const auto absPoint = transformPointToGlobal(point);
     updateOccupancyGrid(absPoint);
 }

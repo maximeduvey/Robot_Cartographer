@@ -66,6 +66,8 @@ public:
 
     void addDataToParse(const FieldPoints &fieldPoints);
 
+    void saveOccupancyGridToFile(const std::string& filename);
+
     /// Inliner ///
     inline bool isRunning() { return _end.load(); }
     ///         ///

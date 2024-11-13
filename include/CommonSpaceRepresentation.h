@@ -71,7 +71,6 @@ struct FieldPoints
   // lidarCycle allow us to measure if the data are perceiving is an additionnal one 
   // or an update that should erase the previous one  
   size_t lidarCycle = 0;
-  size_t nbrPoints = LD06_TWELVE_STEP_ANGLE;
   std::vector<Point> points;
 };
 
