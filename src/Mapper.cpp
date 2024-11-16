@@ -4,6 +4,10 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <queue>
+
+//todelete
+#include "CommonDebugFunction.h"
 
 Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
                float startAngleManaged /*= MAPPER_MIN_FIELD_VIEW*/,
@@ -14,7 +18,7 @@ Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
     _end.store(false);
     _occupancy_grid = std::vector<std::vector<std::pair<bool, int>>>(
         map.grid_lenght,
-        std::vector<std::pair<bool, int>>(map.grid_width, {true, 0}));
+        std::vector<std::pair<bool, int>>(map.grid_width, {false, 0}));
     
 }
 
@@ -63,30 +67,8 @@ void Mapper::setNoiseFilterNbrCorelationPoint(int nbr)
     _noiseFilter_nbrCorelationPoint.store(nbr);
 }
 
+// for debug
 
-void Mapper::saveOccupancyGridToFile(const std::string& filename) {
-    _mutextDataToParse.lock();
-    std::ofstream outFile(filename);
-    if (!outFile.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
-
-    for (const auto& row : _occupancy_grid) {
-        for (const auto& cell : row) {
-            if (cell.first) {
-                outFile << "[x] ";  // Occupied
-            } else {
-                outFile << "[ ] ";  // Free
-            }
-        }
-        outFile << "\n";
-    }
-
-    outFile.close();
-    std::cout << "Occupancy grid saved to " << filename << std::endl;
-    _mutextDataToParse.unlock();
-}
 
 
 void Mapper::loop_parseFieldPoints(Mapper *myself)
@@ -104,9 +86,10 @@ void Mapper::loop_parseFieldPoints(Mapper *myself)
             std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
             for (const auto &fieldpoints : myself->_dataToParse)
             {
-                for (const auto &point : fieldpoints.points) {
+                /* for (const auto &point : fieldpoints.points) {
                     myself->parsePointToMap_pointsAreRelativeToRobot(point);
-                }
+                } */
+                myself->processLidarData(fieldpoints.points);
             }
             myself->_dataToParse.clear();
             std::cout << TAG << "after" << myself->_dataToParse.size() << std::endl;
@@ -182,113 +165,127 @@ pcl::PointCloud<pcl::PointXYZ> Mapper::convertToPCLCloud(const std::vector<Point
     return cloud;
 }
 
+
+
 /// @brief this function will basically noise filter the data and fill occupancyGrid
 /// @param lidarPoints
 void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
 {
     // Convert lidar data to PCL point cloud
-    auto cloud = convertToPCLCloud(lidarPoints);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    *cloud = convertToPCLCloud(lidarPoints); // Assuming convertToPCLCloud correctly converts the vector
 
-    // // 1. Noise Filtering using Statistical Outlier Removal
-    // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
-    // pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-    // sor.setInputCloud(cloud);
-    // sor.setMeanK(_noiseFilter_nbrCorelationPoint.load()); // Set number of neighbors to analyze
-    // sor.setStddevMulThresh(1.0); // Threshold for outliers
-    // sor.filter(*cloud_filtered);
+    CommonDebugFunction::savePointCloudToFile(*cloud, "cloud.log");
 
-    // // 2. Clustering using Euclidean Cluster Extraction
-    // pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
-    // tree->setInputCloud(cloud_filtered);
+    // 1. Noise Filtering using Statistical Outlier Removal
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+    sor.setInputCloud(cloud);
+    sor.setMeanK(_noiseFilter_nbrCorelationPoint.load()); // Set number of neighbors to analyze
+    sor.setStddevMulThresh(1.0);                          // Threshold for outliers
+    sor.filter(*cloud_filtered);
+    
+    CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered.log");
 
-    // std::vector<pcl::PointIndices> cluster_indices;
-    // pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    // ec.setClusterTolerance(0.1); // Distance tolerance (in meters) for clustering
-    // ec.setMinClusterSize(5);     // Minimum number of points for a valid cluster
-    // ec.setMaxClusterSize(500);   // Maximum number of points per cluster
-    // ec.setSearchMethod(tree);
-    // ec.setInputCloud(cloud_filtered);
-    // ec.extract(cluster_indices);
+    // 2. Clustering using Euclidean Cluster Extraction
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+    tree->setInputCloud(cloud_filtered);
 
-    //  // Create an Occupancy Grid
-    // std::vector<std::vector<int>> occupancyGrid(grid_width, std::vector<int>(grid_height, 0));
-    // for (const auto& cluster : cluster_indices) {
-    //     for (const int& index : cluster.indices) {
-    //         pcl::PointXYZ point = cloud_filtered->points[index];
-    //         int gridX = (point.x / grid_resolution) + grid_offset_x;
-    //         int gridY = (point.y / grid_resolution) + grid_offset_y;
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance(1); // Distance tolerance for clustering
+    ec.setMinClusterSize(5);     // Minimum number of points for a valid cluster
+    ec.setMaxClusterSize(500);   // Maximum number of points per cluster
+    ec.setSearchMethod(tree);
+    ec.setInputCloud(cloud_filtered);
+    ec.extract(cluster_indices);
 
-    //         if (gridX >= 0 && gridX < grid_width && gridY >= 0 && gridY < grid_height) {
-    //             occupancyGrid[gridX][gridY] = 1;
-    //         }
-    //     }
-    // }
+    CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered2.log");
+
+    // 3. Create an Occupancy Grid
+    std::cout << "cluster_indices.size : " << cluster_indices.size() << std::endl;
+    std::vector<std::vector<int>> occupancyGrid(_map.grid_width, std::vector<int>(_map.grid_lenght, 0));
+    for (const auto &cluster : cluster_indices) {
+        for (const int &index : cluster.indices) {
+            pcl::PointXYZ point = cloud_filtered->points[index];
+
+
+            // Convert point coordinates to grid indices
+            int gridX = static_cast<int>(point.x / _map.gridResolution);
+            int gridY = static_cast<int>(point.y / _map.gridResolution);
+
+            std::cout << "point x:" << point.x << ", point.y:" << point.y << ", gridX:" << gridX << ", gridy: " << gridY << std::endl;
+
+            // Check bounds before writing to the grid
+            if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght) {
+                occupancyGrid[gridX][gridY] += 1;
+            }
+        }
+    }
+
+    // Optional: Save the occupancy grid for debugging
+    CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log");
 
     // // Run Pathfinding with Occupancy Grid
-    // auto path = findPath(occupancyGrid, startX, startY, destX, destY);
+    auto path = findPath(occupancyGrid, 0, 50, 100, 50);
+    CommonDebugFunction::savePathToPointCloud(path, "path.log");
+
+    CommonDebugFunction::visualizeOccupancyGridAndPath(occupancyGrid, path, "objectAndPath");
 
     // updateGridWithClusters(cluster_indices, cloud_filtered);
 }
 
-// std::vector<std::pair<int, int>> Mapper::findPath(const std::vector<std::vector<int>>& grid, int startX, int startY, int destX, int destY) {
-//     int rows = grid.size();
-//     int cols = grid[0].size();
-
-//     auto heuristic = [](int x1, int y1, int x2, int y2) {
-//         return std::hypot(x2 - x1, y2 - y1);
-//     };
-
-//     // Priority queue for open list
-//     std::priority_queue<Node*, std::vector<Node*>, CompareNode> openList;
-//     std::unordered_map<int, Node*> allNodes;
-//     auto hash = [cols](int x, int y) { return x * cols + y; };
-
-//     // Start and destination nodes
-//     Node* startNode = new Node(startX, startY, 0, heuristic(startX, startY, destX, destY));
-//     openList.push(startNode);
-//     allNodes[hash(startX, startY)] = startNode;
-
-//     std::vector<std::pair<int, int>> directions{{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-
-//     while (!openList.empty()) {
-//         Node* current = openList.top();
-//         openList.pop();
-
-//         // Check if we reached the destination
-//         if (current->x == destX && current->y == destY) {
-//             std::vector<std::pair<int, int>> path;
-//             for (Node* node = current; node; node = node->parent) {
-//                 path.emplace_back(node->x, node->y);
-//             }
-//             std::reverse(path.begin(), path.end());
-
-//             // Cleanup all nodes
-//             for (auto& [_, node] : allNodes) delete node;
-//             return path;
-//         }
-
-//         // Explore neighbors
-//         for (const auto& [dx, dy] : directions) {
-//             int nx = current->x + dx, ny = current->y + dy;
-
-//             // Boundary and obstacle check
-//             if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] == 0) {
-//                 float newCost = current->cost + 1.0f;
-//                 int nodeHash = hash(nx, ny);
-
-//                 if (allNodes.find(nodeHash) == allNodes.end() || newCost < allNodes[nodeHash]->cost) {
-//                     Node* neighbor = new Node(nx, ny, newCost, heuristic(nx, ny, destX, destY), current);
-//                     openList.push(neighbor);
-//                     allNodes[nodeHash] = neighbor;
-//                 }
-//             }
-//         }
-//     }
-
-//     // Cleanup all nodes if no path is found
-//     for (auto& [_, node] : allNodes) delete node;
-//     return {}; // Return empty path if no route to destination
-// }
+std::vector<std::pair<int, int>> Mapper::findPath(
+    const std::vector<std::vector<int>>& grid,
+    int startX, int startY, int destX, int destY)
+{
+    int rows = grid.size();
+    int cols = grid[0].size();
+    auto heuristic = [](int x1, int y1, int x2, int y2) {
+        return std::hypot(x2 - x1, y2 - y1);
+    };
+    // Priority queue for open list
+    std::priority_queue<Node*, std::vector<Node*>, CompareNode> openList;
+    std::unordered_map<int, Node*> allNodes;
+    auto hash = [cols](int x, int y) { return x * cols + y; };
+    // Start and destination nodes
+    Node* startNode = new Node(startX, startY, 0, heuristic(startX, startY, destX, destY));
+    openList.push(startNode);
+    allNodes[hash(startX, startY)] = startNode;
+    std::vector<std::pair<int, int>> directions{{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    while (!openList.empty()) {
+        Node* current = openList.top();
+        openList.pop();
+        // Check if we reached the destination
+        if (current->x == destX && current->y == destY) {
+            std::vector<std::pair<int, int>> path;
+            for (Node* node = current; node; node = node->parent) {
+                path.emplace_back(node->x, node->y);
+            }
+            std::reverse(path.begin(), path.end());
+            // Cleanup all nodes
+            for (auto& [_, node] : allNodes) delete node;
+            return path;
+        }
+        // Explore neighbors
+        for (const auto& [dx, dy] : directions) {
+            int nx = current->x + dx, ny = current->y + dy;
+            // Boundary and obstacle check
+            if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] == 0) {
+                float newCost = current->cost + 1.0f;
+                int nodeHash = hash(nx, ny);
+                if (allNodes.find(nodeHash) == allNodes.end() || newCost < allNodes[nodeHash]->cost) {
+                    Node* neighbor = new Node(nx, ny, newCost, heuristic(nx, ny, destX, destY), current);
+                    openList.push(neighbor);
+                    allNodes[nodeHash] = neighbor;
+                }
+            }
+        }
+    }
+    // Cleanup all nodes if no path is found
+    for (auto& [_, node] : allNodes) delete node;
+    return {}; // Return empty path if no route to destination
+}
 
 // // do not use
 // void Mapper::updateGridWithClusters(const std::vector<pcl::PointIndices> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)

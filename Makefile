@@ -1,6 +1,7 @@
 # Directories
 SRC_DIR = src
 INCLUDE_DIR = include
+DATA_DIR = data
 EXTERNAL_LIB=external_lib
 TEST_DIR=test
 # Compiler
@@ -8,6 +9,7 @@ CXX = g++
 
 # Compiler flags
 CXXFLAGS = \
+    -I $(INCLUDE_DIR)/$(DATA_DIR) \
     -I $(INCLUDE_DIR) \
     -I $(TEST_DIR) \
     -I $(EXTERNAL_LIB)/eigen \
@@ -19,11 +21,13 @@ LIBS =  -lpthread \
         -lncurses \
         -lm \
         -L/usr/lib \
-        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation
+        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search 
+
 
 
 # Source files
 SRC_FILES = $(wildcard $(SRC_DIR)/Mapper.cpp) \
+            $(wildcard $(SRC_DIR)/$(DATA_DIR)/*.cpp) \
             $(wildcard $(TEST_DIR)/*.cpp)
 
 # Object files

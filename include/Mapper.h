@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CommonSpaceRepresentation.h"
+#include "MapSpatialInfos.h"
 
 #include <vector>
 #include <mutex>
@@ -32,27 +33,31 @@
 class Mapper
 {
 private:
-    struct Node {
+    struct Node
+    {
         int x, y;
         float cost, heuristic;
-        Node* parent;
+        Node *parent;
 
-        Node(int x, int y, float cost, float heuristic, Node* parent = nullptr)
+        Node(int x, int y, float cost, float heuristic, Node *parent = nullptr)
             : x(x), y(y), cost(cost), heuristic(heuristic), parent(parent) {}
 
         float totalCost() const { return cost + heuristic; }
     };
 
     // Comparison operator for priority queue (min-heap)
-    struct CompareNode {
-        bool operator()(const Node* a, const Node* b) const {
+    struct CompareNode
+    {
+        bool operator()(const Node *a, const Node *b) const
+        {
             return a->totalCost() > b->totalCost();
         }
     };
+
 public:
     Mapper(MapSpatialInfos map = MapSpatialInfos(),
-        float startAngleManaged = MAPPER_MIN_FIELD_VIEW,
-        float endAngleManaged = MAPPER_MAX_FIELD_VIEW);
+           float startAngleManaged = MAPPER_MIN_FIELD_VIEW,
+           float endAngleManaged = MAPPER_MAX_FIELD_VIEW);
     virtual ~Mapper();
 
     void setManagedAngleFieldOFView(float startAngleManaged, float endAngleManaged);
@@ -66,7 +71,7 @@ public:
 
     void addDataToParse(const FieldPoints &fieldPoints);
 
-    void saveOccupancyGridToFile(const std::string& filename);
+    void saveOccupancyGridToFile(const std::string &filename);
 
     /// Inliner ///
     inline bool isRunning() { return _end.load(); }
@@ -83,13 +88,13 @@ private:
     Point transformPointToGlobal(const Point &point);
     void updateOccupancyGrid(const Point &global_point);
 
-// void updateGridWithClusters(const std::vector<pcl::PointIndices> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    // void updateGridWithClusters(const std::vector<pcl::PointIndices> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
-//     std::vector<std::pair<int, int>> findPath(
-//         const std::vector<std::vector<int>>& grid,
-//          int startX, int startY, int destX, int destY);
+    std::vector<std::pair<int, int>> findPath(
+        const std::vector<std::vector<int>> &grid,
+        int startX, int startY, int destX, int destY);
 
-private:
+public:
     float _startAngleManaged;
     float _endAngleManaged;
 
@@ -101,11 +106,11 @@ private:
     // // this is the robots size, it is used to determine a collision path to the objective
     // Eigen::Vector2d _robotSize = {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH};
     ///
-    RobotSpatialInfos _robotInfos ; // this need to be centralized in PAMI
+    RobotSpatialInfos _robotInfos; // this need to be centralized in PAMI
 
     /// @brief this the vector that will be continuously parsed to update the map
     std::vector<FieldPoints> _dataToParse;
-    //const pcl::PointCloud<pcl::PointXYZ>::Ptr& _cloudPoint;
+    // const pcl::PointCloud<pcl::PointXYZ>::Ptr& _cloudPoint;
     std::mutex _mutextDataToParse;
 
     std::atomic<bool> _end;

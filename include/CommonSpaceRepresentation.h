@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include "MapSpatialInfos.h"
 
 #define TAG (std::string("[") + std::string(__PRETTY_FUNCTION__) + std::string("] ")).c_str()
 
@@ -23,28 +24,13 @@
 // that contain 12 measurement, see doc: Communication_Protocol.pdf page 5
 #define LD06_TWELVE_STEP_ANGLE 12
 
-#define MAP_WIDTH 300  // 3 Metre
-#define MAP_LENGHT 200 // 2 Metre
-
 #define PAMI_ROBOT_SIZE_LENGTH 90.0f
 #define PAMI_ROBOT_SIZE_WIDTH 110.0f
 #define PAMI_ROBOT_SIZE_HEIGHT 110.0f
 
-#define MAPPER_DEFAULT_GRID_RESOLUTION 1.0f // each grid square will be of 1cm square
 
 #define POS_X 0
 #define POS_Y 1
-
-/// @brief This class is all the infos related to a map
-/// BECAREFUL: it can be a map the robot is moving on or a map used to represent what the robot is seeing
-class MapSpatialInfos
-{
-public:
-  //Eigen::Vector2f _currentRobotPosition = {MAP_LENGHT, MAP_WIDTH};
-  float grid_lenght = MAP_LENGHT;
-  float grid_width = MAP_WIDTH;
-  float gridResolution = MAPPER_DEFAULT_GRID_RESOLUTION; // in cm, is not that useful, but it's belong to this struct
-};
 
 struct RobotSpatialInfos
 {
@@ -66,8 +52,9 @@ struct Point
 
 /// @brief half generic, the logic of list of point with the nbr of point is here
 /// but for simplicity reason it has a default value (for now with have only lidarLD06 so let simplify to it)
-struct FieldPoints
+class FieldPoints
 {
+  public :
   // lidarCycle allow us to measure if the data are perceiving is an additionnal one 
   // or an update that should erase the previous one  
   size_t lidarCycle = 0;
