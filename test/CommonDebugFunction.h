@@ -15,6 +15,13 @@
 class CommonDebugFunction
 {
 public:
+    static void display3dObject(std::vector<Object3D> objects);
+
+    static void savePointCloudToFile(
+        const std::vector<Eigen::Vector2f> &pathPoints,
+        const std::vector<Object3D> &detectedObjects,
+        const std::string &filename);
+
     static void savePointCloudToFile(
         const pcl::PointCloud<pcl::PointXYZ> &cloud,
         const std::string &filename);

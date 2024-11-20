@@ -7,12 +7,21 @@ std::vector<Point> generateTestPoints()
 {
     std::vector<Point> points;
 
+
     // Clustered points around (50, 50)
     for (int i = -10; i <= 10; ++i)
     {
         for (int j = -10; j <= 10; ++j)
         {
             points.push_back(Point{Eigen::Vector2f(50.0f + i * 0.5f, 50.0f + j * 0.5f), static_cast<uint16_t>(50)});
+        }
+    }
+
+    for (int i = -10; i <= 10; ++i)
+    {
+        for (int j = -10; j <= 10; ++j)
+        {
+            points.push_back(Point{Eigen::Vector2f(80.0f + i * 0.5f, 80.0f + j * 0.5f), static_cast<uint16_t>(50)});
         }
     }
 

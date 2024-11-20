@@ -11,6 +11,7 @@
 
 #include <Eigen/Dense>
 #include "MapSpatialInfos.h"
+#include "RobotSpatialInfos.h"
 
 #define TAG (std::string("[") + std::string(__PRETTY_FUNCTION__) + std::string("] ")).c_str()
 
@@ -24,22 +25,12 @@
 // that contain 12 measurement, see doc: Communication_Protocol.pdf page 5
 #define LD06_TWELVE_STEP_ANGLE 12
 
-#define PAMI_ROBOT_SIZE_LENGTH 90.0f
-#define PAMI_ROBOT_SIZE_WIDTH 110.0f
-#define PAMI_ROBOT_SIZE_HEIGHT 110.0f
-
-
 #define POS_X 0
 #define POS_Y 1
 
-struct RobotSpatialInfos
-{
-public:
-  Eigen::Vector2f currentRobotPosition = {0.0f, 0.0f};  // only 2d for now, we'll check later if 3D has meaning
-  Eigen::Vector2f robotStartingPosition = {0.0f, 0.0f}; // useful to return to it
-  float _currentRobotAngle = {0.0f};                    // in which direction the robot is looking
-  Eigen::Vector3f robotSize = {
-      PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT}; // is he long? is he fat? is he tall ? (lenght, width, height)
+struct Object3D {
+    Eigen::Vector3f center; // Center of the object (x, y, z)
+    Eigen::Vector3f size;   // Size of the object (length, width, height)
 };
 
 /// @brief this class represent a point in space, it has a distance var when this point is relative to an object

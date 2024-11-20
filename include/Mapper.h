@@ -69,7 +69,11 @@ public:
     void startDataParsing();
     void stopDataParsing();
 
+    bool isCellBlockedWithRobotSize(int x, int y,
+                                    const std::vector<std::vector<int>> &grid);
+
     void addDataToParse(const FieldPoints &fieldPoints);
+    std::vector<Object3D> refineMapToObjects(const std::vector<std::vector<int>> &grid);
 
     void saveOccupancyGridToFile(const std::string &filename);
 
@@ -83,10 +87,16 @@ private:
     void parsePointToMap_pointsAreAbsolute(const Point &point);
 
     pcl::PointCloud<pcl::PointXYZ> convertToPCLCloud(const std::vector<Point> &lidarPoints);
+    bool checkCollision(const Eigen::Vector2f &robotPos, const Eigen::Vector3f &robotSize, const Object3D &object);
+    std::vector<Eigen::Vector2f> findPathWithVectorCalculation(
+        const Eigen::Vector2f &start,
+        const std::vector<Object3D> &obstacles);
 
     void processLidarData(const std::vector<Point> &lidarPoints);
     Point transformPointToGlobal(const Point &point);
     void updateOccupancyGrid(const Point &global_point);
+
+    float getHeuristic(const Eigen::Vector2f &current, const Eigen::Vector2f &destination);
 
     // void updateGridWithClusters(const std::vector<pcl::PointIndices> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
