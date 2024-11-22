@@ -229,10 +229,16 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     // // Run Pathfinding with Occupancy Grid
     // auto path = findPath(occupancyGrid, 0, 50, 100, 50);
     // CommonDebugFunction::savePathToPointCloud(path, "path.log");
-    _robotInfos.currentRobotPosition = {0.0f, 50.0f};
-    auto path = findPathWithVectorCalculation({100, 50}, refinedobjects);
+    _robotInfos.currentRobotPosition = {0.0f, 50.0f, 0.0f};
 
-    CommonDebugFunction::savePointCloudToFile(path, refinedobjects, "objectAndPath");
+    std::vector<Eigen::Vector3f> pointsPathToDest;
+    recursiveCalculateNextPosition(_robotInfos, {100, 50, 0.0f}, refinedobjects, pointsPathToDest);
+    Object3D ob;
+    ob.center = _robotInfos.currentRobotPosition;
+    ob.size = _robotInfos.robotSize;
+    CommonDebugFunction::savePointCloudToFile(ob, {100, 50, 0.0f}, *cloud_filtered, pointsPathToDest, refinedobjects, "objectAndPath");
+
+    //auto path = findPathWithVectorCalculation({100, 50}, refinedobjects);
 
     // CommonDebugFunction::visualizeOccupancyGridAndPath(occupancyGrid, path, "objectAndPath");
 
@@ -411,101 +417,92 @@ std::vector<Object3D> Mapper::refineMapToObjects(
     return objects;
 }
 
-float Mapper::getHeuristic(const Eigen::Vector2f &current, const Eigen::Vector2f &destination)
-{
-    return (current - destination).norm();
+bool Mapper::isInCollision(const Eigen::Vector3f& position, const Eigen::Vector3f& size, const Eigen::Vector3f& point) {
+    Eigen::Vector3f halfSize = size * 0.5f;
+    return (point.x() >= (position.x() - halfSize.x()) &&
+            point.x() <= (position.x() + halfSize.x()) &&
+            point.y() >= (position.y() - halfSize.y()) &&
+            point.y() <= (position.y() + halfSize.y()));
 }
 
-bool Mapper::checkCollision(const Eigen::Vector2f &robotPos, const Eigen::Vector3f &robotSize, const Object3D &object)
-{
-    // Robot bounding box
-    Eigen::Vector2f robotMin = robotPos - 0.5f * robotSize.head<2>();
-    Eigen::Vector2f robotMax = robotPos + 0.5f * robotSize.head<2>();
 
-    // Object bounding box
-    Eigen::Vector2f objectMin = object.center.head<2>() - 0.5f * object.size.head<2>();
-    Eigen::Vector2f objectMax = object.center.head<2>() + 0.5f * object.size.head<2>();
+/// @brief recursive function to get next position to reach toward the destination with detected object
+/// @param robot 
+/// @param destination 
+/// @param objects 
+/// @return 
+void Mapper::recursiveCalculateNextPosition(const RobotSpatialInfos& robot, 
+                                            const Eigen::Vector3f& destination, 
+                                            const std::vector<Object3D>& objects,
+                                            std::vector<Eigen::Vector3f> &pathToFill) {
+    std::cout << " -> Robot pos :" << robot.currentRobotPosition << std::endl;
 
-    // Check for intersection
-    return !(robotMax.x() < objectMin.x() || robotMin.x() > objectMax.x() ||
-             robotMax.y() < objectMin.y() || robotMin.y() > objectMax.y());
-}
-
-std::vector<Eigen::Vector2f> Mapper::findPathWithVectorCalculation(
-    const Eigen::Vector2f &start,
-    const std::vector<Object3D> &obstacles
-    // const Eigen::Vector2f& destination,
-    // const Eigen::Vector3f& robotSize,
-    // float gridResolution
-)
-{
-    // Priority queue for A* (open list)
-    using Node = std::tuple<Eigen::Vector2f, float, float, Eigen::Vector2f>; // Pos, cost, heuristic, parent
-    auto compare = [](const Node &a, const Node &b)
-    { return std::get<1>(a) + std::get<2>(a) > std::get<1>(b) + std::get<2>(b); };
-    std::priority_queue<Node, std::vector<Node>, decltype(compare)> openList(compare);
-
-    // Visited set
-    std::unordered_map<Eigen::Vector2f, Eigen::Vector2f, Eigen::Hash> cameFrom;
-    std::unordered_map<Eigen::Vector2f, float, Eigen::Hash> costSoFar;
-
-    openList.emplace(start, 0.0f, getHeuristic(start, destination), Eigen::Vector2f{-1, -1});
-    costSoFar[start] = 0.0f;
-
-    // Directions (x, y only)
-    std::vector<Eigen::Vector2f> directions = {
-        {gridResolution, 0}, {-gridResolution, 0},
-        {0, gridResolution}, {0, -gridResolution}};
-
-    while (!openList.empty())
-    {
-        auto [current, cost, h, parent] = openList.top();
-        openList.pop();
-
-        // If we reached the destination
-        if ((current - destination).norm() < gridResolution)
-        {
-            // Reconstruct the path
-            std::vector<Eigen::Vector2f> path;
-            while (current != Eigen::Vector2f{-1, -1})
-            {
-                path.push_back(current);
-                current = cameFrom[current];
-            }
-            std::reverse(path.begin(), path.end());
-            return path;
+    // Filter objects in the line of view
+    std::vector<Object3D> filteredObjects;
+    for (const auto& obj : objects) {
+        if ((obj.center - robot.currentRobotPosition).dot(destination - robot.currentRobotPosition) > 0) {
+            filteredObjects.push_back(obj);
         }
+    }
 
-        // Explore neighbors
-        for (const auto &dir : directions)
-        {
-            Eigen::Vector2f neighbor = current + dir;
+    // Check for collisions
+    Eigen::Vector3f nextPosition = destination;
+    float closestCollisionDist = std::numeric_limits<float>::max();
+    Object3D closestObject;
+    bool foundCollision = false;
 
-            // Collision detection with all obstacles
-            bool collision = false;
-            for (const auto &object : obstacles)
-            {
-                if (checkCollision(neighbor, robotSize, object))
-                {
-                    collision = true;
-                    break;
-                }
-            }
-            if (collision)
-                continue;
+    for (const auto& obj : filteredObjects) {
+        Eigen::Vector3f halfSizeObj = obj.size * 0.5f;
+        Eigen::Vector3f halfSizeRobot = robot.robotSize * 0.5f;
 
-            // Cost calculation
-            float newCost = costSoFar[current] + gridResolution;
+        // Expand the object's bounds by the robot's half-size
+        Eigen::Vector3f expandedCenter = obj.center;
+        Eigen::Vector3f expandedSize = obj.size + robot.robotSize;
 
-            if (costSoFar.find(neighbor) == costSoFar.end() || newCost < costSoFar[neighbor])
-            {
-                costSoFar[neighbor] = newCost;
-                float h = getHeuristic(neighbor, destination);
-                openList.emplace(neighbor, newCost, h, current);
-                cameFrom[neighbor] = current;
+        Eigen::Vector3f expandedHalfSize = expandedSize * 0.5f;
+
+        Eigen::Vector3f objectEdge = {
+            std::clamp(robot.currentRobotPosition.x(), expandedCenter.x() - expandedHalfSize.x(), expandedCenter.x() + expandedHalfSize.x()),
+            std::clamp(robot.currentRobotPosition.y(), expandedCenter.y() - expandedHalfSize.y(), expandedCenter.y() + expandedHalfSize.y()),
+            0.0f
+        };
+
+        if (isInCollision(expandedCenter, expandedSize, objectEdge)) {
+            float distance = (objectEdge - robot.currentRobotPosition).norm();
+            if (distance < closestCollisionDist) {
+                closestCollisionDist = distance;
+                closestObject = obj;
+                foundCollision = true;
             }
         }
     }
 
-    return {}; // No path found
+    // If there is a collision, calculate detour point
+    if (foundCollision) {
+        Eigen::Vector3f detourDirection = (destination - robot.currentRobotPosition).normalized();
+        Eigen::Vector3f halfSizeObj = closestObject.size * 0.5f;
+        Eigen::Vector3f halfSizeRobot = robot.robotSize * 0.5f;
+
+        Eigen::Vector3f avoidanceOffset = {
+            (detourDirection.y() * (halfSizeObj.x() + halfSizeRobot.x())),
+            (-detourDirection.x() * (halfSizeObj.y() + halfSizeRobot.y())),
+            0.0f
+        };
+
+        nextPosition = closestObject.center + avoidanceOffset;
+
+        // Recursively calculate for the new position
+        RobotSpatialInfos updatedRobot = robot;
+        updatedRobot.currentRobotPosition = nextPosition;
+
+        if (updatedRobot.currentRobotPosition != robot.currentRobotPosition) {
+            std::cout << TAG << "Adding pos path:" <<  nextPosition << std::endl;
+            pathToFill.push_back(nextPosition);
+            recursiveCalculateNextPosition(updatedRobot, destination, objects, pathToFill);
+        } else {
+            std::cout << TAG << "ERROR : PATHFINDING was doing infinite loop: " << closestCollisionDist << std::endl;
+        }
+    } else { // No collision, return destination
+        pathToFill.push_back(nextPosition);
+    }
 }

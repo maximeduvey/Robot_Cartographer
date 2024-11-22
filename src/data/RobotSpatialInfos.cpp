@@ -20,11 +20,9 @@ bool RobotSpatialInfos::operator==(const RobotSpatialInfos &other) const
 // Print operator for debugging
 std::ostream &operator<<(std::ostream &os, const RobotSpatialInfos &info)
 {
-    os << "Current Position: (" << info.currentRobotPosition.x() << ", " << info.currentRobotPosition.y() << ")"
-       << "\nStarting Position: (" << info.robotStartingPosition.x() << ", " << info.robotStartingPosition.y() << ")"
+    os << "Current Position: (x:" << info.currentRobotPosition.x() << ", y:" << info.currentRobotPosition.y() << ", z:" << info.currentRobotPosition.z() <<")"
+       << "\nStarting Position: (x:" << info.robotStartingPosition.x() << ", y:" << info.robotStartingPosition.y() <<  ", z:" << info.robotStartingPosition.z() << ")"
        << "\nAngle: " << info._currentRobotAngle
-       << "\nSize: (Length: " << info.robotSize.x()
-       << ", Width: " << info.robotSize.y()
-       << ", Height: " << info.robotSize.z() << ")";
+       << "\nSize: (Length: " << info.robotSize.x()    << ", Width: " << info.robotSize.y() << ", Height: " << info.robotSize.z() << ")";
     return os;
 }

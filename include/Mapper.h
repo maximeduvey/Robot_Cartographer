@@ -88,17 +88,20 @@ private:
 
     pcl::PointCloud<pcl::PointXYZ> convertToPCLCloud(const std::vector<Point> &lidarPoints);
     bool checkCollision(const Eigen::Vector2f &robotPos, const Eigen::Vector3f &robotSize, const Object3D &object);
-    std::vector<Eigen::Vector2f> findPathWithVectorCalculation(
+
+/*     std::vector<Eigen::Vector2f> findPathWithVectorCalculation(
         const Eigen::Vector2f &start,
-        const std::vector<Object3D> &obstacles);
+        const std::vector<Object3D> &obstacles); */
 
     void processLidarData(const std::vector<Point> &lidarPoints);
     Point transformPointToGlobal(const Point &point);
     void updateOccupancyGrid(const Point &global_point);
 
-    float getHeuristic(const Eigen::Vector2f &current, const Eigen::Vector2f &destination);
-
-    // void updateGridWithClusters(const std::vector<pcl::PointIndices> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    bool isInCollision(const Eigen::Vector3f& position, const Eigen::Vector3f& size, const Eigen::Vector3f& point);
+    void recursiveCalculateNextPosition(const RobotSpatialInfos& robot, 
+                                      const Eigen::Vector3f& destination, 
+                                      const std::vector<Object3D>& objects,
+                                      std::vector<Eigen::Vector3f> &pathToFill);
 
     std::vector<std::pair<int, int>> findPath(
         const std::vector<std::vector<int>> &grid,

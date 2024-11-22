@@ -235,64 +235,91 @@ void CommonDebugFunction::saveOccupancyGridToFile(
         std::cout << "Occupancy grid saved to " << filename << std::endl;
 }
 
-// Function to save path and detected objects to a PCD file
-void CommonDebugFunction::savePointCloudToFile(
-    const std::vector<Eigen::Vector2f>& pathPoints,
-    const std::vector<Object3D>& detectedObjects,
-    const std::string& filename
-) {
-    // Create a PointCloud to store all points
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    // Add path points with green color
-    for (const auto& point : pathPoints) {
-        pcl::PointXYZRGB pclPoint;
-        pclPoint.x = point.x();
-        pclPoint.y = point.y();
-        pclPoint.z = 0.0f;  // Path points are 2D, so z = 0
-        pclPoint.r = 0;
-        pclPoint.g = 255;   // Green color
-        pclPoint.b = 0;
-        cloud->points.push_back(pclPoint);
+void CommonDebugFunction::addPointToCloud(
+    const Eigen::Vector3f &point,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    uint8_t r, uint8_t g, uint8_t b)
+{
+    pcl::PointXYZRGB pclPoint;
+            pclPoint.x = point.x();
+            pclPoint.y = point.y();
+            pclPoint.z = point.z();
+            pclPoint.z = 0.0f; // Path points are 2D, so z = 0
+            pclPoint.r = r;
+            pclPoint.g = g;
+            pclPoint.b = b;
+            cloud->points.push_back(pclPoint);
+}
+
+void CommonDebugFunction::addPointsToCloud(
+    const std::vector<Eigen::Vector3f> &pathPoints,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    uint8_t r, uint8_t g, uint8_t b)
+{
+    for (const auto &point : pathPoints)
+    {
+        CommonDebugFunction::addPointToCloud(point, cloud, r,g,b);
     }
+}
 
+void CommonDebugFunction::addObjectToCloud(
+    const Object3D &object,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    uint8_t r, uint8_t g, uint8_t b)
+{
+    // Represent the object by its center position
+    pcl::PointXYZRGB pclPoint;
+    pclPoint.x = object.center.x();
+    pclPoint.y = object.center.y();
+    pclPoint.z = object.center.z(); // Objects are in 3D space
+    pclPoint.r = r;               // Red color
+    pclPoint.g = g;
+    pclPoint.b = b;
+    cloud->points.push_back(pclPoint);
+
+    // Optionally, add points for object boundaries or corners
+    Eigen::Vector3f halfSize = object.size * 0.5f;
+    std::vector<Eigen::Vector3f> corners = {
+        object.center + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), -halfSize.z()),
+        object.center + Eigen::Vector3f(halfSize.x(), -halfSize.y(), -halfSize.z()),
+        object.center + Eigen::Vector3f(halfSize.x(), halfSize.y(), -halfSize.z()),
+        object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), -halfSize.z()),
+        object.center + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), halfSize.z()),
+        object.center + Eigen::Vector3f(halfSize.x(), -halfSize.y(), halfSize.z()),
+        object.center + Eigen::Vector3f(halfSize.x(), halfSize.y(), halfSize.z()),
+        object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), halfSize.z()),
+    };
+
+    for (const auto &corner : corners)
+    {
+        pcl::PointXYZRGB cornerPoint;
+        cornerPoint.x = corner.x();
+        cornerPoint.y = corner.y();
+        cornerPoint.z = corner.z();
+        cornerPoint.r = r;
+        cornerPoint.g = g;
+        cornerPoint.b = b;
+        cloud->points.push_back(cornerPoint);
+    }
+}
+
+void CommonDebugFunction::addObjectsToCloud(
+    const std::vector<Object3D> &detectedObjects,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    uint8_t r, uint8_t g, uint8_t b)
+{
     // Add detected objects with red color
-    for (const auto& object : detectedObjects) {
-        // Represent the object by its center position
-        pcl::PointXYZRGB pclPoint;
-        pclPoint.x = object.position.x();
-        pclPoint.y = object.position.y();
-        pclPoint.z = object.position.z();  // Objects are in 3D space
-        pclPoint.r = 255;  // Red color
-        pclPoint.g = 0;
-        pclPoint.b = 0;
-        cloud->points.push_back(pclPoint);
-
-        // Optionally, add points for object boundaries or corners
-        Eigen::Vector3f halfSize = object.size * 0.5f;
-        std::vector<Eigen::Vector3f> corners = {
-            object.position + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), -halfSize.z()),
-            object.position + Eigen::Vector3f(halfSize.x(), -halfSize.y(), -halfSize.z()),
-            object.position + Eigen::Vector3f(halfSize.x(), halfSize.y(), -halfSize.z()),
-            object.position + Eigen::Vector3f(-halfSize.x(), halfSize.y(), -halfSize.z()),
-            object.position + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), halfSize.z()),
-            object.position + Eigen::Vector3f(halfSize.x(), -halfSize.y(), halfSize.z()),
-            object.position + Eigen::Vector3f(halfSize.x(), halfSize.y(), halfSize.z()),
-            object.position + Eigen::Vector3f(-halfSize.x(), halfSize.y(), halfSize.z()),
-        };
-
-        for (const auto& corner : corners) {
-            pcl::PointXYZRGB cornerPoint;
-            cornerPoint.x = corner.x();
-            cornerPoint.y = corner.y();
-            cornerPoint.z = corner.z();
-            cornerPoint.r = 255;
-            cornerPoint.g = 0;
-            cornerPoint.b = 0;
-            cloud->points.push_back(cornerPoint);
-        }
+    for (const auto &object : detectedObjects)
+    {
+         CommonDebugFunction::addObjectToCloud(object, cloud, r,g,b);
     }
+}
 
+void CommonDebugFunction::writeCloudWriter(
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    const std::string &filename)
+{
     // Set cloud metadata
     cloud->width = cloud->points.size();
     cloud->height = 1;
@@ -300,9 +327,95 @@ void CommonDebugFunction::savePointCloudToFile(
 
     // Write the point cloud to a PCD file
     pcl::PCDWriter writer;
-    if (writer.write<pcl::PointXYZRGB>(filename + ".pcd", *cloud, false) == -1) {
+    if (writer.write<pcl::PointXYZRGB>(filename + ".pcd", *cloud, false) == -1)
+    {
         std::cerr << "Error: Could not write PCD file: " << filename << std::endl;
-    } else {
+    }
+    else
+    {
         std::cout << "Point cloud saved to " << filename << std::endl;
     }
+}
+
+void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ> &inputCloud,
+                                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr &outputCloud,
+                                           uint8_t r, uint8_t g, uint8_t b)
+{
+    for (const auto &point : inputCloud.points)
+    {
+        pcl::PointXYZRGB coloredPoint;
+        coloredPoint.x = point.x;
+        coloredPoint.y = point.y;
+        coloredPoint.z = point.z;
+        coloredPoint.r = r;
+        coloredPoint.g = g;
+        coloredPoint.b = b;
+
+        outputCloud->points.push_back(coloredPoint);
+    }
+}
+
+// Function to save path and detected objects to a PCD file
+void CommonDebugFunction::savePointCloudToFile(
+    const std::vector<Eigen::Vector3f> &pathPoints,
+    const std::vector<Object3D> &detectedObjects,
+    const std::string &filename)
+{
+    // Create a PointCloud to store all points
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
+    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
+    CommonDebugFunction::writeCloudWriter(cloud, filename);
+}
+
+void CommonDebugFunction::savePointCloudToFile(
+    const pcl::PointCloud<pcl::PointXYZ> &cloud2,
+    const std::vector<Eigen::Vector3f> &pathPoints,
+    const std::vector<Object3D> &detectedObjects,
+    const std::string &filename)
+{
+    // Create a PointCloud to store all points
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE  );
+    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
+    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
+    CommonDebugFunction::writeCloudWriter(cloud, filename);
+}
+
+void CommonDebugFunction::savePointCloudToFile(
+    const Object3D &robot,
+    const pcl::PointCloud<pcl::PointXYZ> &cloud2,
+    const std::vector<Eigen::Vector3f> &pathPoints,
+    const std::vector<Object3D> &detectedObjects,
+    const std::string &filename)
+{
+    // Create a PointCloud to store all points
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_LIGHT_BLUE);
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
+    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
+    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
+    CommonDebugFunction::writeCloudWriter(cloud, filename);
+}
+
+void CommonDebugFunction::savePointCloudToFile(
+    const Object3D &robot,
+    const Eigen::Vector3f &destination,
+    const pcl::PointCloud<pcl::PointXYZ> &cloud2,
+    const std::vector<Eigen::Vector3f> &pathPoints,
+    const std::vector<Object3D> &detectedObjects,
+    const std::string &filename)
+{
+    // Create a PointCloud to store all points
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_LIGHT_BLUE);
+    CommonDebugFunction::addPointToCloud(destination, cloud, RGB_YELLOW);
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
+    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
+    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
+    CommonDebugFunction::writeCloudWriter(cloud, filename);
 }

@@ -12,15 +12,15 @@
 #include <Eigen/Dense>
 #include <iostream>
 
-#define PAMI_ROBOT_SIZE_LENGTH 90.0f
-#define PAMI_ROBOT_SIZE_WIDTH 110.0f
-#define PAMI_ROBOT_SIZE_HEIGHT 110.0f
+#define PAMI_ROBOT_SIZE_LENGTH 4 // 90.0f mm
+#define PAMI_ROBOT_SIZE_WIDTH  4 // 110.0f mm
+#define PAMI_ROBOT_SIZE_HEIGHT 2 // 110.0 mm
 
 struct RobotSpatialInfos
 {
 public:
-  Eigen::Vector2f currentRobotPosition = {0.0f, 0.0f};  // only 2d for now, we'll check later if 3D has meaning
-  Eigen::Vector2f robotStartingPosition = {0.0f, 0.0f}; // useful to return to it
+  Eigen::Vector3f currentRobotPosition = {0.0f, 0.0f, 0.0f};  // only 2d for now, we'll check later if 3D has meaning
+  Eigen::Vector3f robotStartingPosition = {0.0f, 0.0f, 0.0f}; // useful to return to it
   float _currentRobotAngle = {0.0f};                    // in which direction the robot is looking
   Eigen::Vector3f robotSize = {
       PAMI_ROBOT_SIZE_LENGTH,

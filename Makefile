@@ -2,8 +2,10 @@
 SRC_DIR = src
 INCLUDE_DIR = include
 DATA_DIR = data
-EXTERNAL_LIB=external_lib
-TEST_DIR=test
+EXTERNAL_LIB = external_lib
+TEST_DIR = test
+OBJ_DIR = OBJ
+
 # Compiler
 CXX = g++
 
@@ -14,8 +16,9 @@ CXXFLAGS = \
     -I $(TEST_DIR) \
     -I $(EXTERNAL_LIB)/eigen \
     -I /usr/include/pcl-1.12 \
-    -Wall -O2 
+    -Wall -O2
 #-std=c++17
+
 # Libraries
 LIBS =  -lpthread \
         -lncurses \
@@ -23,15 +26,13 @@ LIBS =  -lpthread \
         -L/usr/lib \
         -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search 
 
-
-
 # Source files
 SRC_FILES = $(wildcard $(SRC_DIR)/Mapper.cpp) \
             $(wildcard $(SRC_DIR)/$(DATA_DIR)/*.cpp) \
             $(wildcard $(TEST_DIR)/*.cpp)
 
 # Object files
-OBJ_FILES = $(SRC_FILES:.cpp=.o)
+OBJ_FILES = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SRC_FILES))
 
 # Output executable
 TARGET = mapping.exe
@@ -43,13 +44,16 @@ all: $(TARGET)
 $(TARGET): $(OBJ_FILES)
 	$(CXX) -o $@ $^ $(LIBS)
 
-# Rule to compile .cpp files to .o files
-%.o: %.cpp
+# Rule to compile .cpp files to .o files inside OBJ folder
+$(OBJ_DIR)/%.o: %.cpp
+	@mkdir -p $(OBJ_DIR)/$(SRC_DIR)
+	@mkdir -p $(OBJ_DIR)/$(SRC_DIR)/$(DATA_DIR)
+	@mkdir -p $(OBJ_DIR)/$(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean up
 clean:
-	rm -f $(OBJ_FILES) $(TARGET)
+	rm -rf $(OBJ_DIR) $(TARGET)
 
 # Rebuild rule
 re: clean all
