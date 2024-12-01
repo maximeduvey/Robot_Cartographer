@@ -15,6 +15,8 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/kdtree/kdtree.h>
 
+#include <pcl/visualization/pcl_visualizer.h>
+
 #define MAPPER_MAX_FIELD_VIEW 360.0f
 #define MAPPER_MIN_FIELD_VIEW 0.0f
 
@@ -30,6 +32,12 @@
 #define MAPPER_MAX_DEPTH_PATH_NUMBER_POINT 50
 
 static int _detected_object_id_incrementer = 0;
+inline int getObjectNewId() {
+    ++_detected_object_id_incrementer;
+    if(_detected_object_id_incrementer >= INT_MAX)
+        _detected_object_id_incrementer = 0;
+    return _detected_object_id_incrementer;
+}
 
 /// @brief this class manage the map of object that is perceived around the robot
 /// in short it is feed with field of points (that each have a x, Y position)

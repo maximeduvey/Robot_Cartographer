@@ -15,16 +15,32 @@ CXXFLAGS = \
     -I $(INCLUDE_DIR) \
     -I $(TEST_DIR) \
     -I $(EXTERNAL_LIB)/eigen \
-    -I /usr/include/pcl-1.12 \
-    -Wall -O2
+    -I $(EXTERNAL_LIB)/pcl/common/include/ \
+    -I $(EXTERNAL_LIB)/pcl/build/include/ \
+    -I $(EXTERNAL_LIB)/pcl/filters/include/ \
+    -I $(EXTERNAL_LIB)/pcl/search/include/ \
+    -I $(EXTERNAL_LIB)/pcl/segmentation/include/ \
+    -I $(EXTERNAL_LIB)/pcl/io/include/ \
+    -I $(EXTERNAL_LIB)/pcl/kdtree/include/ \
+    -I $(EXTERNAL_LIB)/pcl/visualization/include/ \
+    -I $(EXTERNAL_LIB)/pcl/sample_consensus/include/ \
+    -I /usr/include/vtk-7.1/ \
+    -Wall -O0 -g
 #-std=c++17
 
 # Libraries
-LIBS =  -lpthread \
+LDFLAGS =  -Wl,--no-as-needed \
+        -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
+        -lvtkCommonCore-7.1 -lvtkCommonDataModel-7.1 -lvtkCommonMath-7.1 \
+        -lvtkIOCore-7.1 -lvtkIOGeometry-7.1 \
+        -lvtkRenderingCore-7.1 -lvtkRenderingOpenGL2-7.1 -lvtkRenderingFreeType-7.1 \
+        -lvtkFiltersCore-7.1 -lvtkInteractionStyle-7.1 \
+        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
+        -lpthread \
         -lncurses \
-        -lm \
-        -L/usr/lib \
-        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search 
+        -lm
+
+
 
 # Source files
 SRC_FILES = $(wildcard $(SRC_DIR)/Mapper.cpp) \
@@ -42,7 +58,7 @@ all: $(TARGET)
 
 # Rule to link the final executable
 $(TARGET): $(OBJ_FILES)
-	$(CXX) -o $@ $^ $(LIBS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 # Rule to compile .cpp files to .o files inside OBJ folder
 $(OBJ_DIR)/%.o: %.cpp

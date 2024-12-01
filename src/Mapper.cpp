@@ -251,14 +251,16 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         ob.size = _robotInfos.size;
         CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath");
 
-        /*         if (refined_lastDetectedObject.size() > 0)
-                {
-                    linkDetectedObjects(
-                        refined_currentDetectedObject,
-                        refined_lastDetectedObject,
-                        _robotInfos.getMovementFromLastMeasure());
-                    CommonDebugFunction::savePointCloudToFile(ob, {100, 50, 0.0f}, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "newObjectAndPath");
-                } */
+/*         if (refined_lastDetectedObject.size() > 0)
+        {
+            linkDetectedObjects(
+                refined_currentDetectedObject,
+                refined_lastDetectedObject,
+                _robotInfos.getMovementFromLastMeasure());
+            //CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "newObjectAndPath");
+        }
+        refined_lastDetectedObject = refined_currentDetectedObject; */
+
         // auto path = findPathWithVectorCalculation({100, 50}, refinedobjects);
 
         // CommonDebugFunction::visualizeOccupancyGridAndPath(occupancyGrid, path, "objectAndPath");
@@ -477,7 +479,7 @@ bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
     if (AABB_LOG_DEBUG)
         std::cout << "DEBUG immobileObj.center:[" << immobileObj.center[0] << "][" << immobileObj.center[1] << "][" << immobileObj.center[2] << "] , " << "imObjHalfSize:[" << imObjHalfSize[0] << "][" << imObjHalfSize[1] << "][" << imObjHalfSize[2] << "] , " << "movingObj.center:[" << movingObj.center[0] << "][" << movingObj.center[1] << "][" << movingObj.center[2] << "] , " << std::endl;
 
-    // We take the distance between these 2 object and add/minus the cumulation of their size
+    // We take the distance between these 2 object and add/minus the cumulation of their size 
     Eigen::Vector3f tmptMin = (immobileObj.center - imObjHalfSize - movingObj.center);
     Eigen::Vector3f tmptMax = (immobileObj.center + imObjHalfSize - movingObj.center);
     if (AABB_LOG_DEBUG)
@@ -636,7 +638,7 @@ void Mapper::linkDetectedObjects(
         }
         else
         {
-            refined_currentDetectedObject[i].id = ++_detected_object_id_incrementer;
+            refined_currentDetectedObject[i].id = getObjectNewId();
         }
     }
 }

@@ -1,0 +1,26 @@
+
+
+# apt install
+sudo apt-get install libvtk7-dev libglew-dev
+
+ # or with manually
+sudo apt-get remove libpcl-dev
+sudo apt-get install qtbase5-dev
+sudo apt-get install libpcap-dev
+sudo apt-get install freeglut3-dev
+sudo apt-get install libboost-all-dev
+
+
+
+git submodule add https://github.com/PointCloudLibrary/pcl.git
+cd pcl
+mkdir build && cd build
+mkdir vtk
+
+cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON
+cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON -DVTK_DIR=./vtk
+
+make -j$(nproc)
+sudo make install
+
+

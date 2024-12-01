@@ -19,13 +19,13 @@ std::vector<Point> CreationTools::generateTestPoints(Eigen::Vector3f decalage /*
             Eigen::Vector3f(cubeSize, cubeSize, cubeSize)});
     points.insert(points.end(), pts.begin(), pts.end());
 
-  cubePos = 50;
+/*   cubePos = 50;
     pts = generateCloudOfPointsForObj(
         Object3D{
             Eigen::Vector3f(cubePos, cubePos, 0.0f) + decalage,
             Eigen::Vector3f(cubeSize, cubeSize, cubeSize)});
     points.insert(points.end(), pts.begin(), pts.end());
-
+ */
     for (int i = 0; i < 10; ++i)
     {
         std::cout << points[i].pos << "->" << points[i].distance << std::endl;
