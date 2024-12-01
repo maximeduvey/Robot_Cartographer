@@ -3,49 +3,12 @@
 
 #include "CommonDebugFunction.h"
 
-std::vector<Point> generateTestPoints()
-{
-    std::vector<Point> points;
-
-
-    // Clustered points around (50, 50)
-    for (int i = -10; i <= 10; ++i)
-    {
-        for (int j = -10; j <= 10; ++j)
-        {
-            points.push_back(Point{Eigen::Vector2f(50.0f + i * 0.5f, 50.0f + j * 0.5f), static_cast<uint16_t>(50)});
-        }
-    }
-
-    for (int i = -10; i <= 10; ++i)
-    {
-        for (int j = -10; j <= 10; ++j)
-        {
-            points.push_back(Point{Eigen::Vector2f(80.0f + i * 0.5f, 80.0f + j * 0.5f), static_cast<uint16_t>(50)});
-        }
-    }
-
-    // Unique outlier points scattered elsewhere
-    points.push_back(Point{Eigen::Vector2f(10.0f, 15.0f), 100});
-    points.push_back(Point{Eigen::Vector2f(180.0f, 20.0f), 250});
-    points.push_back(Point{Eigen::Vector2f(75.0f, 250.0f), 300});
-    points.push_back(Point{Eigen::Vector2f(120.0f, 150.0f), 200});
-    points.push_back(Point{Eigen::Vector2f(160.0f, 200.0f), 150});
-
-    
-    points.push_back(Point{Eigen::Vector2f(1.0f, 1.0f), 100});
-    points.push_back(Point{Eigen::Vector2f(2.0f, 2.0f), 250});
-    points.push_back(Point{Eigen::Vector2f(3.0f, 3.0f), 300});
-    points.push_back(Point{Eigen::Vector2f(4.0f, 4.0f), 200});
-    points.push_back(Point{Eigen::Vector2f(5.0f, 5.0f), 150});
-
-    return points;
-}
+#include "CreationTools.h"
 
 int main()
 {
     std::cout << TAG << std::endl;
-    auto vec = generateTestPoints();
+    auto vec = CreationTools::generateTestPoints();
 
     Mapper map;
     map.startDataParsing();
@@ -59,7 +22,7 @@ int main()
     map.addDataToParse(field);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    CommonDebugFunction::saveOccupancyGridToFile(map._occupancy_grid, "output.log");
+    //CommonDebugFunction::saveOccupancyGridToFile(map._occupancy_grid, "output.log", {0,0,0},{0,0,0});
     while (1)
     {
     }

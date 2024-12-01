@@ -48,11 +48,15 @@ public:
 
     static void saveOccupancyGridToFile(
         const std::vector<std::vector<std::pair<bool, int>>> &map,
-        const std::string &filename);
+        const std::string &filename,
+        const Eigen::Vector3f &robotStart,
+        const Eigen::Vector3f &goalPos);
 
     static void saveOccupancyGridToFile(
         const std::vector<std::vector<int>> &grid,
-        const std::string &filename);
+        const std::string &filename,
+        const Eigen::Vector3f &robotStart,
+        const Eigen::Vector3f &goalPos);
 
     static void savePathToPointCloud(
         const std::vector<std::pair<int, int>> &path,

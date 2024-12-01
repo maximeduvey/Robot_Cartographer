@@ -23,14 +23,14 @@ void PositionController::setRobotSpatialInfos(const RobotSpatialInfos &robotInfo
 void PositionController::translate(float deltaX, float deltaY)
 {
     std::lock_guard<std::mutex> lock(_mutexRobot);
-    _robot.currentRobotPosition.x() += deltaX;
-    _robot.currentRobotPosition.y() += deltaY;
+    _robot.center.x() += deltaX;
+    _robot.center.y() += deltaY;
 }
 
 void PositionController::translate(const Eigen::Vector2f &delta)
 {
     std::lock_guard<std::mutex> lock(_mutexRobot);
-    _robot.currentRobotPosition += delta;
+    _robot.center += delta;
 }
 
 // Rotate the robot’s orientation
@@ -68,14 +68,14 @@ void PositionController::updatePositionFromMotors(float leftMotorCm, float right
     // Calculate the new position in global coordinates
     if (fabs(deltaTheta) < 1e-5)
     { // Straight line movement (small rotation threshold)
-        _robot.currentRobotPosition.x() += deltaDistance * cos(currentAngleRad);
-        _robot.currentRobotPosition.y() += deltaDistance * sin(currentAngleRad);
+        _robot.center.x() += deltaDistance * cos(currentAngleRad);
+        _robot.center.y() += deltaDistance * sin(currentAngleRad);
     }
     else
     { // Arc movement
         float radius = deltaDistance / deltaTheta;
-        _robot.currentRobotPosition.x() += radius * (sin(newAngleRad) - sin(currentAngleRad));
-        _robot.currentRobotPosition.y() += radius * (cos(currentAngleRad) - cos(newAngleRad));
+        _robot.center.x() += radius * (sin(newAngleRad) - sin(currentAngleRad));
+        _robot.center.y() += radius * (cos(currentAngleRad) - cos(newAngleRad));
     }
 
     // Update the robot's angle in degrees, normalizing to [0, 360)
@@ -84,5 +84,5 @@ void PositionController::updatePositionFromMotors(float leftMotorCm, float right
         _robot._currentRobotAngle += 360.0f;
     std::cout << TAG <<
      "_robot._currentRobotAngle:" << _robot._currentRobotAngle <<
-     ", _robot.currentRobotPosition:" <<  _robot.currentRobotPosition << std::endl;
+     ", _robot.center (currentRobotPosition):" <<  _robot.center << std::endl;
 }

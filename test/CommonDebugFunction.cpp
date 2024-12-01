@@ -138,7 +138,7 @@ void CommonDebugFunction::savePointsToFile(
 
     for (const auto &point : points)
     {
-        outFile << point.pos[0] << " " << point.pos[1] << "\n";
+        outFile << point.pos.x() << " " << point.pos.y() << "\n";
     }
 
     outFile.close();
@@ -147,9 +147,11 @@ void CommonDebugFunction::savePointsToFile(
 
 void CommonDebugFunction::saveOccupancyGridToFile(
     const std::vector<std::vector<std::pair<bool, int>>> &map,
-    const std::string &filename)
+    const std::string &filename,
+    const Eigen::Vector3f &robotStart,
+    const Eigen::Vector3f &goalPos)
 {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
     std::ofstream outFile(filename);
     if (!outFile.is_open())
     {
@@ -157,45 +159,51 @@ void CommonDebugFunction::saveOccupancyGridToFile(
         return;
     }
 
-    std::cout << TAG << " column:" << map.size() << ", row:" << map[0].size() << std::endl;
+    // std::cout << TAG << " column:" << map.size() << ", row:" << map[0].size() << std::endl;
     int y = 0;
-    for (const auto &row : map)
+for (const auto &row : map)
+{
+    int x = 0;
+    for (const auto &cell : row)
     {
-        int x = 0;
-        for (const auto &cell : row)
-        {
-            cloud->points.emplace_back(x, y, 0);
-            if (cell.second > 0)
-            {
-                outFile << "[x] "; // Occupied
-            }
-            else
-            {
-                outFile << "[ ] "; // Free
-            }
-        }
-        outFile << "\n";
+        if (cell.second > 0)
+            cloud->points.emplace_back(static_cast<float>(x), static_cast<float>(y), 0.0f);
+        outFile << (cell.second > 0 ? "[x]" : "[ ]") << " "; // Occupied or Free
+        ++x;
     }
+    ++y;
+    outFile << "\n";
+}
+
 
     outFile.close();
 
+    CommonDebugFunction::addObjectToCloud({robotStart}, cloud, 255, 0, 0);
+    CommonDebugFunction::addObjectToCloud({goalPos}, cloud, 0, 0, 255);
     cloud->width = cloud->points.size();
     cloud->height = 1;
     cloud->is_dense = true;
 
     // Save to a PCD file
     pcl::PCDWriter writer;
-    if (writer.write<pcl::PointXYZ>(filename + ".pcd", *cloud, false) == -1)
-
+    if (writer.write<pcl::PointXYZRGB>(filename + ".pcd", *cloud, false) == -1)
+    {
+        std::cout << "Failed to save Occupancy " << std::endl;
+    }
+    else
+    {
         std::cout << "Occupancy grid saved to " << filename << std::endl;
+    }
 };
 
 void CommonDebugFunction::saveOccupancyGridToFile(
     const std::vector<std::vector<int>> &grid,
-    const std::string &filename)
+    const std::string &filename,
+    const Eigen::Vector3f &robotStart,
+    const Eigen::Vector3f &goalPos)
 {
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
     if (grid.empty() || grid[0].empty())
     {
         std::cerr << "Error: Occupancy grid is empty!" << std::endl;
@@ -215,7 +223,7 @@ void CommonDebugFunction::saveOccupancyGridToFile(
         for (const auto &cell : row)
         {
             if (cell > 0)
-                cloud->points.emplace_back(x, y, 0);
+                cloud->points.emplace_back(x, y, 0, 255, 255, 255);
             outFile << (cell > 0 ? "[x]" : "[ ]") << " "; // Occupied or Free
             ++x;
         }
@@ -225,16 +233,25 @@ void CommonDebugFunction::saveOccupancyGridToFile(
 
     outFile.close();
 
+    CommonDebugFunction::addObjectToCloud({robotStart}, cloud, 255, 0, 0);
+    CommonDebugFunction::addObjectToCloud({goalPos}, cloud, 0, 0, 255);
     cloud->width = cloud->points.size();
     cloud->height = 1;
     cloud->is_dense = true;
 
     // Save to a PCD file
     pcl::PCDWriter writer;
-    if (writer.write<pcl::PointXYZ>(filename + ".pcd", *cloud, false) == -1)
-        std::cout << "Occupancy grid saved to " << filename << std::endl;
-}
+    if (writer.write<pcl::PointXYZRGB>(filename + ".pcd", *cloud, false) != -1)
+    {
 
+        std::cout << "Occupancy grid saved to " << filename << std::endl;
+    }
+    else
+    {
+
+        std::cout << "Failed to save occupancy grid " << filename << std::endl;
+    }
+}
 
 void CommonDebugFunction::addPointToCloud(
     const Eigen::Vector3f &point,
@@ -242,14 +259,14 @@ void CommonDebugFunction::addPointToCloud(
     uint8_t r, uint8_t g, uint8_t b)
 {
     pcl::PointXYZRGB pclPoint;
-            pclPoint.x = point.x();
-            pclPoint.y = point.y();
-            pclPoint.z = point.z();
-            pclPoint.z = 0.0f; // Path points are 2D, so z = 0
-            pclPoint.r = r;
-            pclPoint.g = g;
-            pclPoint.b = b;
-            cloud->points.push_back(pclPoint);
+    pclPoint.x = point.x();
+    pclPoint.y = point.y();
+    pclPoint.z = point.z();
+    pclPoint.z = 0.0f; // Path points are 2D, so z = 0
+    pclPoint.r = r;
+    pclPoint.g = g;
+    pclPoint.b = b;
+    cloud->points.push_back(pclPoint);
 }
 
 void CommonDebugFunction::addPointsToCloud(
@@ -257,9 +274,10 @@ void CommonDebugFunction::addPointsToCloud(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
     uint8_t r, uint8_t g, uint8_t b)
 {
+    std::cout << TAG << "Path containing :" << pathPoints.size() << std::endl;
     for (const auto &point : pathPoints)
     {
-        CommonDebugFunction::addPointToCloud(point, cloud, r,g,b);
+        CommonDebugFunction::addPointToCloud(point, cloud, r, g, b);
     }
 }
 
@@ -273,7 +291,7 @@ void CommonDebugFunction::addObjectToCloud(
     pclPoint.x = object.center.x();
     pclPoint.y = object.center.y();
     pclPoint.z = object.center.z(); // Objects are in 3D space
-    pclPoint.r = r;               // Red color
+    pclPoint.r = r;                 // Red color
     pclPoint.g = g;
     pclPoint.b = b;
     cloud->points.push_back(pclPoint);
@@ -312,7 +330,7 @@ void CommonDebugFunction::addObjectsToCloud(
     // Add detected objects with red color
     for (const auto &object : detectedObjects)
     {
-         CommonDebugFunction::addObjectToCloud(object, cloud, r,g,b);
+        CommonDebugFunction::addObjectToCloud(object, cloud, r, g, b);
     }
 }
 
@@ -378,7 +396,7 @@ void CommonDebugFunction::savePointCloudToFile(
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE  );
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
     CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
     CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
     CommonDebugFunction::writeCloudWriter(cloud, filename);
