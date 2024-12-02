@@ -4,35 +4,18 @@
 #include "CommonDebugFunction.h"
 
 #include "CreationTools.h"
-#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <cmath>
 #include <iostream>
 
-int main()
+#include "SingletonVisualizerManager.h"
+
+Mapper map;
+
+void addPointCloudToVisualizer()
 {
-    std::cout << TAG << std::endl;
-    auto vec = CreationTools::generateTestPoints();
-
-    Mapper map;
-    map.startDataParsing();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    FieldPoints field;
-    field.points = vec;
-
-    CommonDebugFunction::savePointsToFile(vec, "vec.log");
-
-    map.addDataToParse(field);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    map._robotInfos.getMovementFromLastMeasure();
-    // map.addDataToParse(field);
-    // CommonDebugFunction::saveOccupancyGridToFile(map._occupancy_grid, "output.log", {0,0,0},{0,0,0});
-
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    std::cout << "DEBUG 1" << std::endl;
     // Generate a sine wave pattern
     for (float z = 0.0; z <= 10.0; z += 0.1)
     {
@@ -48,35 +31,44 @@ int main()
     cloud->width = cloud->points.size();
     cloud->height = 1; // Unorganized point cloud
     cloud->is_dense = true;
-    std::cout << "DEBUG 2" << std::endl;
 
-    std::cout << "Generated point cloud with " << cloud->points.size() << " points." << std::endl;
+    SingletonVisualizerManager::getInstance().updatePointCloud(cloud, "calculated cloud");
+}
 
-    // Step 2: Visualize the Point Cloud
-    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-    if (!viewer)
+void addData()
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    FieldPoints field;
+    map._robotInfos.getMovementFromLastMeasure();
+
+    field.points = CreationTools::generateTestPoints({-30, -30, 0});
+    map.addDataToParse(field);
+}
+
+int main()
+{
+    std::cout << TAG << std::endl;
+    auto vec = CreationTools::generateTestPoints();
+
+    SingletonVisualizerManager::getInstance().initialize();
+
+    map.startDataParsing();
+
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    FieldPoints field;
+    field.points = vec;
+
+    CommonDebugFunction::savePointsToFile(vec, "vec.log");
+    map.addDataToParse(field);
+
+    // CommonDebugFunction::saveOccupancyGridToFile(map._occupancy_grid, "output.log", {0,0,0},{0,0,0});
+
+    // addPointCloudToVisualizer();
+    std::thread(&addData).detach();
+    while (!SingletonVisualizerManager::getInstance().wasStopped())
     {
-        std::cerr << "Viewer pointer is null!" << std::endl;
+        SingletonVisualizerManager::getInstance().spinOnce(100);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    else
-    {
-        viewer->setBackgroundColor(0, 0, 0);                         // Black background
-        viewer->addPointCloud<pcl::PointXYZ>(cloud, "sample cloud"); // Add the point cloud
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "sample cloud");
-        viewer->addCoordinateSystem(1.0); // Add a coordinate system for reference
-        viewer->initCameraParameters();
-        std::cout << "DEBUG 3" << std::endl;
-
-        // Step 3: Interactive Loop
-        while (!viewer->wasStopped())
-        {
-            viewer->spinOnce(100); // Allow interaction with the visualization window
-        }
-
-        std::cout << "DEBUG 4" << std::endl;
-    }
-    while (true)
-        ;
-
     return 0;
 }

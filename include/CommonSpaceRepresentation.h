@@ -32,6 +32,16 @@ public:
   Eigen::Vector3f center; // Center of the object (x, y, z)
   Eigen::Vector3f size;   // Size of the object (length, width, height)
   int id;
+
+  Object3D() : center({0,0,0}), size(0,0,0), id(0) {}
+  Object3D(const Eigen::Vector3f &pos) : center(pos), size({0,0,0}), id(0) {}
+  Object3D(const Eigen::Vector3f &pos, const Eigen::Vector3f &s) : center(pos), size(s), id(0) {}
+  Object3D(const Object3D &copy) : center(copy.center), size(copy.size), id(copy.id) {}
+  friend std::ostream &operator<<(std::ostream &os, const Object3D &info) {
+        os  << "id:" << info.id << ", center x:" << info.center.x() << ", y:" << info.center.y() << ", z:" << info.center.z()
+       << ", size x:" << info.size.x() << ", y:" << info.size.y() << ", z:" << info.size.z();
+    return os;
+  }
 };
 
 /// @brief this class represent a point in space, it has a distance var when this point is relative to an object

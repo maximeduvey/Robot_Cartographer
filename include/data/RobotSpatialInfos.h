@@ -22,10 +22,14 @@ class RobotSpatialInfos : public Object3D
 {
 public:
   RobotSpatialInfos();
+  RobotSpatialInfos(
+      const Eigen::Vector3f &robotStartingPosition,
+      const Eigen::Vector3f &obsize = {PAMI_ROBOT_SIZE_LENGTH,PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT});
   virtual ~RobotSpatialInfos();
+  RobotSpatialInfos(const RobotSpatialInfos &other);
 
-  Eigen::Vector3f robotStartingPosition = {0.0f, 0.0f, 0.0f}; // useful to return to it
-  float _currentRobotAngle = {0.0f};                          // in which direction the robot is looking
+  Eigen::Vector3f _robotStartingPosition = {0.0f, 0.0f, 0.0f}; // useful to return to it
+  float _currentRobotAngle = {0.0f};                           // in which direction the robot is looking
 
   // is now managed by the inheritance to Object3D
   //  Eigen::Vector3f currentRobotPosition = {0.0f, 0.0f, 0.0f};  // only 2d for now, we'll check later if 3D has meaning
@@ -34,10 +38,10 @@ public:
         PAMI_ROBOT_SIZE_WIDTH,
         PAMI_ROBOT_SIZE_HEIGHT}; // is he long? is he fat? is he tall ? (lenght, width, height)
   */
-  std::pair<int, int> getRobotSizeInGridCells(float gridResolution) const;
+  std::pair<int, int> getRobotSizeInGridCells(float gridResolution);
 
   // Equality operator for comparison
-  bool operator==(const RobotSpatialInfos &other) const;
+  bool operator==(const RobotSpatialInfos &other);
 
   // Print operator for debugging
   friend std::ostream &operator<<(std::ostream &os, const RobotSpatialInfos &info);
@@ -50,4 +54,5 @@ private:
   time_t _previousRobotPositionTimestamp;
   // robot previous position from last measurement done, allow to calculate the robot movement between lidar measure
   Eigen::Vector3f previousRobotPosition = {0.0f, 0.0f, 0.0f};
+  std::mutex _mutexDataAccessor;
 };

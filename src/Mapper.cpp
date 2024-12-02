@@ -174,7 +174,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
     *cloud = convertToPCLCloud(lidarPoints); // Assuming convertToPCLCloud correctly converts the vector
 
-    CommonDebugFunction::savePointCloudToFile(*cloud, "cloud.log");
+    //CommonDebugFunction::savePointCloudToFile(*cloud, "cloud.log");
 
     // 1. Noise Filtering using Statistical Outlier Removal
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
@@ -184,7 +184,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     sor.setStddevMulThresh(1.0);                          // Threshold for outliers
     sor.filter(*cloud_filtered);
 
-    CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered.log");
+    //CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered.log");
 
     // 2. Clustering using Euclidean Cluster Extraction
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
@@ -200,7 +200,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     ec.setInputCloud(cloud_filtered);
     ec.extract(cluster_indices);
 
-    CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered2.log");
+    //CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered2.log");
 
     // 3. Create an Occupancy Grid
     std::cout << "cluster_indices.size : " << cluster_indices.size() << std::endl;
@@ -229,17 +229,20 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         std::cout << "Done" << std::endl;
 
         auto desination_goal = Eigen::Vector3f{100, 50, 0.0f};
-        _robotInfos.center = {0.0f, 50.0f, 0.0f};
+        _robotInfos.center =  Eigen::Vector3f{0.0f, 50.0f, 0.0f};
+
+/*                 _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
+        auto desination_goal =  Eigen::Vector3f{0.0f, 50.0f, 0.0f}; */
 
         // Optional: Save the occupancy grid for debugging
-        CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
+        //CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
         std::cout << "Done 2" << std::endl;
         _mutexDetectedObject.lock();
         refined_lastDetectedObject = refined_currentDetectedObject;
         refined_currentDetectedObject = refineMapToObjects(occupancyGrid);
         std::cout << "Done 3" << std::endl;
         _mutexDetectedObject.unlock();
-        CommonDebugFunction::display3dObject(refined_currentDetectedObject);
+        //CommonDebugFunction::display3dObject(refined_currentDetectedObject);
 
         // // Run Pathfinding with Occupancy Grid
         // auto path = findPath(occupancyGrid, 0, 50, 100, 50);
@@ -562,37 +565,53 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
     }
 
     // If there is a collision, calculate detour point
-    if (foundCollision)
-    {
-
-        Eigen::Vector3f detourDirection = (destination - robot.center).normalized();
+  if (foundCollision) {
+        // Determine the corners of the object with a margin for the robot size
         Eigen::Vector3f halfSizeObj = closestObject.size * 0.5f;
         Eigen::Vector3f halfSizeRobot = robot.size * 0.5f;
 
-        Eigen::Vector3f avoidanceOffset = {
-            (detourDirection.y() * (halfSizeObj.x() + halfSizeRobot.x())),
-            (-detourDirection.x() * (halfSizeObj.y() + halfSizeRobot.y())),
-            0.0f};
+        Eigen::Vector3f expandedHalfSize = halfSizeObj + halfSizeRobot;
 
-        nextPosition = closestObject.center + avoidanceOffset;
+        std::vector<Eigen::Vector3f> corners = {
+            closestObject.center + Eigen::Vector3f(expandedHalfSize.x(), expandedHalfSize.y(), 0),
+            closestObject.center + Eigen::Vector3f(expandedHalfSize.x(), -expandedHalfSize.y(), 0),
+            closestObject.center + Eigen::Vector3f(-expandedHalfSize.x(), expandedHalfSize.y(), 0),
+            closestObject.center + Eigen::Vector3f(-expandedHalfSize.x(), -expandedHalfSize.y(), 0)
+        };
+
+        // Find the closest corner to the robot that moves toward the destination
+        Eigen::Vector3f bestCorner = corners[0];
+        float minCornerDistance = std::numeric_limits<float>::max();
+        for (const auto &corner : corners) {
+            if ((corner - robot.center).dot(destination - robot.center) > 0) { // Check direction
+                float cornerDistance = (corner - robot.center).norm();
+                if (cornerDistance < minCornerDistance) {
+                    minCornerDistance = cornerDistance;
+                    bestCorner = corner;
+                }
+            }
+        }
+        nextPosition = bestCorner;
+
+        // Debug output
+        std::cout << "From ob:" << static_cast<Object3D>(robot)
+                  << ", to destination x:" << destination[0] << " y:" << destination[1] << " z:" << destination[2] << std::endl;
+        std::cout << "closestObject:" << static_cast<Object3D>(closestObject)
+                  << ", nextPosition x:" << nextPosition[0] << " y:" << nextPosition[1] << " z:" << nextPosition[2] << std::endl;
 
         // Recursively calculate for the new position
-        RobotSpatialInfos updatedRobot = robot;
+        RobotSpatialInfos updatedRobot = RobotSpatialInfos(robot);
         updatedRobot.center = nextPosition;
 
-        if (updatedRobot.center != robot.center)
-        {
-            // std::cout << TAG << "Adding pos path:" << nextPosition << std::endl;
+        if (updatedRobot.center != robot.center) {
             pathToFill.push_back(nextPosition);
-            recursiveCalculateNextPathPositionToGoal(updatedRobot, destination, objects, pathToFill);
+            recursiveCalculateNextPathPositionToGoal(updatedRobot, destination, objects, pathToFill, recursionDepth + 1);
+        } else {
+            std::cerr << TAG << "ERROR: PATHFINDING entered infinite loop. UpdatedRobot:" << static_cast<Object3D>(updatedRobot)
+                      << ", robot:" << static_cast<Object3D>(robot) << std::endl;
         }
-        else
-        {
-            std::cout << TAG << "ERROR : PATHFINDING was doing infinite loop: " << closestCollisionDist << std::endl;
-        }
-    }
-    else
-    { // No collision, return destination
+    } else {
+        // No collision, go directly to the destination
         pathToFill.push_back(nextPosition);
     }
 }

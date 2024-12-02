@@ -1,38 +1,60 @@
 
 #include "RobotSpatialInfos.h"
 
-RobotSpatialInfos::RobotSpatialInfos()
+RobotSpatialInfos::RobotSpatialInfos() : Object3D({0.0f, 0.0f, 0.0f}, {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT})
 {
     _previousRobotPositionTimestamp = std::time(nullptr);
+    std::cout << "Default Constructor: " << *this <<std::endl;
+}
+
+RobotSpatialInfos::RobotSpatialInfos(
+      const Eigen::Vector3f &robotStartingPosition,
+      const Eigen::Vector3f &obsize /* = {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT} */
+      ) : Object3D(robotStartingPosition, size),
+       _robotStartingPosition(robotStartingPosition), previousRobotPosition(robotStartingPosition)
+{
+    _previousRobotPositionTimestamp = std::time(nullptr);
+    std::cout << "Constructor: " << *this <<std::endl;
 }
 
 RobotSpatialInfos::~RobotSpatialInfos()
 {
 }
 
-std::pair<int, int> RobotSpatialInfos::getRobotSizeInGridCells(float gridResolution) const
+std::pair<int, int> RobotSpatialInfos::getRobotSizeInGridCells(float gridResolution)
 {
+    std::lock_guard<std::mutex> lock(_mutexDataAccessor);
     int robotLengthCells = static_cast<int>(std::ceil(size.x() / gridResolution));
     int robotWidthCells = static_cast<int>(std::ceil(size.y() / gridResolution));
     return {robotLengthCells, robotWidthCells};
 }
 
 // Equality operator for comparison
-bool RobotSpatialInfos::operator==(const RobotSpatialInfos &other) const
+bool RobotSpatialInfos::operator==(const RobotSpatialInfos &other)
 {
+    std::lock_guard<std::mutex> lock(_mutexDataAccessor);
     return center == other.center &&
-           robotStartingPosition == other.robotStartingPosition &&
+           _robotStartingPosition == other._robotStartingPosition &&
            _currentRobotAngle == other._currentRobotAngle &&
            size == other.size;
+}
+
+// Custom copy constructor
+RobotSpatialInfos::RobotSpatialInfos(const RobotSpatialInfos &other)
+    : Object3D(other),
+      previousRobotPosition(other.previousRobotPosition),
+      _previousRobotPositionTimestamp(other._previousRobotPositionTimestamp)
+{
+    std::cout << "copy constructor: " << *this << ", other:" << other<<std::endl;
 }
 
 // Print operator for debugging
 std::ostream &operator<<(std::ostream &os, const RobotSpatialInfos &info)
 {
-    os << "Current Position: (x:" << info.center.x() << ", y:" << info.center.y() << ", z:" << info.center.z() << ")"
-       << "\nStarting Position: (x:" << info.robotStartingPosition.x() << ", y:" << info.robotStartingPosition.y() << ", z:" << info.robotStartingPosition.z() << ")"
-       << "\nAngle: " << info._currentRobotAngle
-       << "\nSize: (Length: " << info.size.x() << ", Width: " << info.size.y() << ", Height: " << info.size.z() << ")";
+   // std::lock_guard<std::mutex> lock(_mutexDataAccessor);
+    os << static_cast<Object3D>(info)
+       << ", Starting Position: (x:" << info._robotStartingPosition.x() << ", y:" << info._robotStartingPosition.y() << ", z:" << info._robotStartingPosition.z() << ")"
+       << ", Angle: " << info._currentRobotAngle;
     return os;
 }
 
@@ -41,6 +63,7 @@ std::ostream &operator<<(std::ostream &os, const RobotSpatialInfos &info)
 /// @return
 Eigen::Vector3f RobotSpatialInfos::getMovementFromLastMeasure()
 {
+    std::lock_guard<std::mutex> lock(_mutexDataAccessor);
     Eigen::Vector3f movement = center - previousRobotPosition;
     _previousRobotPositionTimestamp = std::time(nullptr);
     return movement;

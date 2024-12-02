@@ -19,23 +19,6 @@ std::vector<Point> CreationTools::generateTestPoints(Eigen::Vector3f decalage /*
             Eigen::Vector3f(cubeSize, cubeSize, cubeSize)});
     points.insert(points.end(), pts.begin(), pts.end());
 
-/*   cubePos = 50;
-    pts = generateCloudOfPointsForObj(
-        Object3D{
-            Eigen::Vector3f(cubePos, cubePos, 0.0f) + decalage,
-            Eigen::Vector3f(cubeSize, cubeSize, cubeSize)});
-    points.insert(points.end(), pts.begin(), pts.end());
- */
-    for (int i = 0; i < 10; ++i)
-    {
-        std::cout << points[i].pos << "->" << points[i].distance << std::endl;
-    }
-    // points.clear();
-    std::cout << "-------------" << std::endl;
-    for (int i = 0; i < 10; ++i)
-    {
-        std::cout << points[i].pos << "->" << points[i].distance << std::endl;
-    }
 
     // Unique outlier points scattered elsewhere
     points.push_back(Point{Eigen::Vector3f(10.0f, 15.0f, 0.0f), 100});
@@ -72,7 +55,7 @@ std::vector<Point> CreationTools::generateCloudOfPointsForObj(const Object3D &ob
             for (float z = minCorner.z(); z <= maxCorner.z(); z += 0.5f)
             {
                 auto point = Point{Eigen::Vector3f(x, y, z), static_cast<uint16_t>(50)};
-                std::cout << "x:" << point.pos[0] << "y:" << point.pos[1] << "z:" << point.pos[2] << std::endl;
+                //std::cout << "x:" << point.pos[0] << "y:" << point.pos[1] << "z:" << point.pos[2] << std::endl;
                 points.emplace_back(point);
             }
         }

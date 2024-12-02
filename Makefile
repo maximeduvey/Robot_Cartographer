@@ -36,6 +36,7 @@ LDFLAGS =  -Wl,--no-as-needed \
         -lvtkRenderingCore-7.1 -lvtkRenderingOpenGL2-7.1 -lvtkRenderingFreeType-7.1 \
         -lvtkFiltersCore-7.1 -lvtkInteractionStyle-7.1 \
         -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
+        -lvtkCommonExecutionModel-7.1 \
         -lpthread \
         -lncurses \
         -lm

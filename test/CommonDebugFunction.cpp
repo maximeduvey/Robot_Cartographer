@@ -1,11 +1,14 @@
 #include "CommonDebugFunction.h"
 
+#include "SingletonVisualizerManager.h"
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <vector>
 #include <utility>
 #include <iostream>
+
+static int unic_id = 3000;
 
 void CommonDebugFunction::display3dObject(std::vector<Object3D> objects)
 {
@@ -134,7 +137,7 @@ void CommonDebugFunction::savePointsToFile(
         return;
     }
 
-    std::cout << "Saving " << points.size() << " points to " << filename << std::endl;
+   // std::cout << "Saving " << points.size() << " points to " << filename << std::endl;
 
     for (const auto &point : points)
     {
@@ -253,20 +256,24 @@ void CommonDebugFunction::saveOccupancyGridToFile(
     }
 }
 
-void CommonDebugFunction::addPointToCloud(
-    const Eigen::Vector3f &point,
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-    uint8_t r, uint8_t g, uint8_t b)
+pcl::PointXYZRGB CommonDebugFunction::eigneVecToPoint( const Eigen::Vector3f &point,  uint8_t r, uint8_t g, uint8_t b)
 {
     pcl::PointXYZRGB pclPoint;
     pclPoint.x = point.x();
     pclPoint.y = point.y();
     pclPoint.z = point.z();
-    pclPoint.z = 0.0f; // Path points are 2D, so z = 0
     pclPoint.r = r;
     pclPoint.g = g;
     pclPoint.b = b;
-    cloud->points.push_back(pclPoint);
+    return pclPoint;
+}
+
+void CommonDebugFunction::addPointToCloud(
+    const Eigen::Vector3f &point,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    uint8_t r, uint8_t g, uint8_t b)
+{
+    cloud->points.push_back(CommonDebugFunction::eigneVecToPoint(point, r, g, b));
 }
 
 void CommonDebugFunction::addPointsToCloud(
@@ -274,14 +281,26 @@ void CommonDebugFunction::addPointsToCloud(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
     uint8_t r, uint8_t g, uint8_t b)
 {
-    std::cout << TAG << "Path containing :" << pathPoints.size() << std::endl;
+    std::cout << "Path containing :" << pathPoints.size() << std::endl;
+    int nbr = 10;
     for (const auto &point : pathPoints)
     {
-        CommonDebugFunction::addPointToCloud(point, cloud, r, g, b);
+        std::string str = std::string( "[x:" + std::to_string(point[0]) + ",y:" + std::to_string(point[1]) + ",z:" + std::to_string(point[2]) + "]");
+        std::cout << TAG << "Path " << str << std::endl;
+        auto pclpoint = CommonDebugFunction::eigneVecToPoint(point, r,g,b);
+        cloud->points.push_back(pclpoint);
+        SingletonVisualizerManager::getInstance().addTextToPoint(pclpoint, str, r,g,b, ++nbr);
+        //CommonDebugFunction::addPointToCloud(point, cloud, r, g, b);
     }
 }
 
-void CommonDebugFunction::addObjectToCloud(
+/// @brief return the center
+/// @param object 
+/// @param cloud 
+/// @param r 
+/// @param g 
+/// @param b 
+pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
     const Object3D &object,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
     uint8_t r, uint8_t g, uint8_t b)
@@ -320,6 +339,7 @@ void CommonDebugFunction::addObjectToCloud(
         cornerPoint.b = b;
         cloud->points.push_back(cornerPoint);
     }
+    return pclPoint;
 }
 
 void CommonDebugFunction::addObjectsToCloud(
@@ -330,7 +350,8 @@ void CommonDebugFunction::addObjectsToCloud(
     // Add detected objects with red color
     for (const auto &object : detectedObjects)
     {
-        CommonDebugFunction::addObjectToCloud(object, cloud, r, g, b);
+        auto pt = CommonDebugFunction::addObjectToCloud(object, cloud, r, g, b);
+        SingletonVisualizerManager::getInstance().addTextToPoint(pt, std::to_string(object.id), RGB_YELLOW, ++unic_id);
     }
 }
 
@@ -427,13 +448,23 @@ void CommonDebugFunction::savePointCloudToFile(
     const std::vector<Object3D> &detectedObjects,
     const std::string &filename)
 {
+    //std::cout << TAG << "A" << std::endl;
+    //SingletonVisualizerManager::getInstance().clearViewer();
+    //std::cout << TAG << "B" <<std::endl;
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_LIGHT_BLUE);
-    CommonDebugFunction::addPointToCloud(destination, cloud, RGB_YELLOW);
+    auto start =CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_ORANGE);
+    SingletonVisualizerManager::getInstance().addTextToPoint(start, "START", RGB_YELLOW, ++unic_id);
+    
+    auto destPoint = CommonDebugFunction::eigneVecToPoint(destination, RGB_YELLOW);
+    cloud->points.push_back(destPoint);
+    SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
+
     CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
     CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
     CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
-    CommonDebugFunction::writeCloudWriter(cloud, filename);
+    
+    //CommonDebugFunction::writeCloudWriter(cloud, filename);
+    SingletonVisualizerManager::getInstance().updatePointCloud(cloud);
 }

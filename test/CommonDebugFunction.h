@@ -46,6 +46,8 @@ public:
         const std::vector<Point> &points,
         const std::string &filename);
 
+    static pcl::PointXYZRGB eigneVecToPoint( const Eigen::Vector3f &point,  uint8_t r, uint8_t g, uint8_t b);
+
     static void saveOccupancyGridToFile(
         const std::vector<std::vector<std::pair<bool, int>>> &map,
         const std::string &filename,
@@ -77,7 +79,7 @@ public:
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
         uint8_t r, uint8_t g, uint8_t b);
 
-    static void addObjectToCloud(
+    static pcl::PointXYZRGB addObjectToCloud(
         const Object3D &object,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
         uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
