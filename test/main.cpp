@@ -42,6 +42,18 @@ void addData()
     map._robotInfos.getMovementFromLastMeasure();
 
     field.points = CreationTools::generateTestPoints({-30, -30, 0});
+/*     auto points = CreationTools::generateTestPoints({-50, -30, 0});
+    field.points.insert(field.points.end(), points.begin(), points.end());
+    
+    points = CreationTools::generateTestPoints({-30, -50, 0});
+    field.points.insert(field.points.end(), points.begin(), points.end());
+
+    points = CreationTools::generateTestPoints({-30, -50, 0});
+    field.points.insert(field.points.end(), points.begin(), points.end());
+
+    points = CreationTools::generateTestPoints({-100, -150, 0});
+    field.points.insert(field.points.end(), points.begin(), points.end()); */
+
     map.addDataToParse(field);
 }
 

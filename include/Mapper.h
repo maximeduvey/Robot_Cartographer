@@ -23,18 +23,20 @@
 #define MAPPER_GRID_RESOLUTION 1.0f // each grid square will be of 1cm square
 
 #define MAPPER_CLOUD_POINT_FILTERING_THRESHOLD 5
-
 #define MAPPER_DEFAULT_WAITING_TIME_PARSER_EMPTY_LIST 1000 // 1sec
 
 // This is the threshold for matching 2 consecutive detected objects (tracking of object)
 #define MAPPER_MARGING_DETECTION_THRESHOLD_MERGER 1.0f
-
 #define MAPPER_MAX_DEPTH_PATH_NUMBER_POINT 50
 
+// this is the distance (from an corner pos) we consider to be "as if" we are on this corner 
+#define MAPPER_THRESHOLD_DISTANCE_FOR_CORNER 1.0f
+
 static int _detected_object_id_incrementer = 0;
-inline int getObjectNewId() {
+inline int getObjectNewId()
+{
     ++_detected_object_id_incrementer;
-    if(_detected_object_id_incrementer >= INT_MAX)
+    if (_detected_object_id_incrementer >= INT_MAX)
         _detected_object_id_incrementer = 0;
     return _detected_object_id_incrementer;
 }
@@ -94,8 +96,8 @@ public:
     void saveOccupancyGridToFile(const std::string &filename);
 
     bool lineIntersectsAABB(const Object3D &movingObj,
-                                const Object3D &immobileObj,
-                                const Eigen::Vector3f& destination);
+                            const Object3D &immobileObj,
+                            const Eigen::Vector3f &destination);
 
     /// Inliner ///
     inline bool isRunning() { return _end.load(); }
@@ -109,9 +111,9 @@ private:
     pcl::PointCloud<pcl::PointXYZ> convertToPCLCloud(const std::vector<Point> &lidarPoints);
     bool checkCollision(const Eigen::Vector2f &robotPos, const Eigen::Vector3f &robotSize, const Object3D &object);
 
-    /*     std::vector<Eigen::Vector2f> findPathWithVectorCalculation(
-            const Eigen::Vector2f &start,
-            const std::vector<Object3D> &obstacles); */
+    static Eigen::Vector3f getCollidingNextPositionCloserBorderLogic(const RobotSpatialInfos &robot,
+                                                              const Object3D &collidingObject,
+                                                              const Eigen::Vector3f &destination);
 
     void processLidarData(const std::vector<Point> &lidarPoints);
     Point transformPointToGlobal(const Point &point);
@@ -119,10 +121,9 @@ private:
 
     bool isInCollision(const Eigen::Vector3f &position, const Eigen::Vector3f &size, const Eigen::Vector3f &point);
     void recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &robot,
-                                                   const Eigen::Vector3f &destination,
-                                                   const std::vector<Object3D> &objects,
-                                                   std::vector<Eigen::Vector3f> &pathToFill,
-                                                   int recursionDepth = 0);
+                                                  const Eigen::Vector3f &destination,
+                                                  const std::vector<Object3D> &objects,
+                                                  std::vector<Eigen::Vector3f> &pathToFill);
 
     std::vector<std::pair<int, int>> findPath(
         const std::vector<std::vector<int>> &grid,

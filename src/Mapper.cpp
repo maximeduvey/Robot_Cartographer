@@ -174,7 +174,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
     *cloud = convertToPCLCloud(lidarPoints); // Assuming convertToPCLCloud correctly converts the vector
 
-    //CommonDebugFunction::savePointCloudToFile(*cloud, "cloud.log");
+    // CommonDebugFunction::savePointCloudToFile(*cloud, "cloud.log");
 
     // 1. Noise Filtering using Statistical Outlier Removal
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
@@ -184,7 +184,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     sor.setStddevMulThresh(1.0);                          // Threshold for outliers
     sor.filter(*cloud_filtered);
 
-    //CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered.log");
+    // CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered.log");
 
     // 2. Clustering using Euclidean Cluster Extraction
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
@@ -200,7 +200,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     ec.setInputCloud(cloud_filtered);
     ec.extract(cluster_indices);
 
-    //CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered2.log");
+    // CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered2.log");
 
     // 3. Create an Occupancy Grid
     std::cout << "cluster_indices.size : " << cluster_indices.size() << std::endl;
@@ -228,21 +228,21 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         }
         std::cout << "Done" << std::endl;
 
-        auto desination_goal = Eigen::Vector3f{100, 50, 0.0f};
-        _robotInfos.center =  Eigen::Vector3f{0.0f, 50.0f, 0.0f};
+        /*         auto desination_goal = Eigen::Vector3f{100, 50, 0.0f};
+                _robotInfos.center = Eigen::Vector3f{0.0f, 50.0f, 0.0f}; */
 
-/*                 _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
-        auto desination_goal =  Eigen::Vector3f{0.0f, 50.0f, 0.0f}; */
+        _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
+        auto desination_goal = Eigen::Vector3f{0.0f, 50.0f, 0.0f};
 
         // Optional: Save the occupancy grid for debugging
-        //CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
+        // CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
         std::cout << "Done 2" << std::endl;
         _mutexDetectedObject.lock();
         refined_lastDetectedObject = refined_currentDetectedObject;
         refined_currentDetectedObject = refineMapToObjects(occupancyGrid);
         std::cout << "Done 3" << std::endl;
         _mutexDetectedObject.unlock();
-        //CommonDebugFunction::display3dObject(refined_currentDetectedObject);
+        // CommonDebugFunction::display3dObject(refined_currentDetectedObject);
 
         // // Run Pathfinding with Occupancy Grid
         // auto path = findPath(occupancyGrid, 0, 50, 100, 50);
@@ -254,15 +254,15 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         ob.size = _robotInfos.size;
         CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath");
 
-/*         if (refined_lastDetectedObject.size() > 0)
-        {
-            linkDetectedObjects(
-                refined_currentDetectedObject,
-                refined_lastDetectedObject,
-                _robotInfos.getMovementFromLastMeasure());
-            //CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "newObjectAndPath");
-        }
-        refined_lastDetectedObject = refined_currentDetectedObject; */
+        /*         if (refined_lastDetectedObject.size() > 0)
+                {
+                    linkDetectedObjects(
+                        refined_currentDetectedObject,
+                        refined_lastDetectedObject,
+                        _robotInfos.getMovementFromLastMeasure());
+                    //CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "newObjectAndPath");
+                }
+                refined_lastDetectedObject = refined_currentDetectedObject; */
 
         // auto path = findPathWithVectorCalculation({100, 50}, refinedobjects);
 
@@ -482,7 +482,7 @@ bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
     if (AABB_LOG_DEBUG)
         std::cout << "DEBUG immobileObj.center:[" << immobileObj.center[0] << "][" << immobileObj.center[1] << "][" << immobileObj.center[2] << "] , " << "imObjHalfSize:[" << imObjHalfSize[0] << "][" << imObjHalfSize[1] << "][" << imObjHalfSize[2] << "] , " << "movingObj.center:[" << movingObj.center[0] << "][" << movingObj.center[1] << "][" << movingObj.center[2] << "] , " << std::endl;
 
-    // We take the distance between these 2 object and add/minus the cumulation of their size 
+    // We take the distance between these 2 object and add/minus the cumulation of their size
     Eigen::Vector3f tmptMin = (immobileObj.center - imObjHalfSize - movingObj.center);
     Eigen::Vector3f tmptMax = (immobileObj.center + imObjHalfSize - movingObj.center);
     if (AABB_LOG_DEBUG)
@@ -513,6 +513,59 @@ bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
     return (tNear <= tFar && tFar >= 0);
 }
 
+/// @brief this function from a starting pos, the colliding object and the destination, will return the closer to reach.
+/// to be precis, we get the 2 border nearest to the start pos, we then check wich border is nearest to the destination, then return it
+/// it allow you to go around an object easily (if you want to do smooth deplacmement and skeep step, you need another smoothing function)
+/// @param robot
+/// @param collidingObject
+/// @param destination
+/// @return
+Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpatialInfos &robot,
+                                                                  const Object3D &collidingObject,
+                                                                  const Eigen::Vector3f &destination)
+{
+    // Calculate corners of the colliding object (with robot size margin)
+    Eigen::Vector3f halfSizeObj = collidingObject.size * 0.5f;
+    Eigen::Vector3f halfSizeRobot = robot.size * 0.5f;
+    Eigen::Vector3f expandedHalfSize = halfSizeObj + halfSizeRobot;
+
+    std::vector<Eigen::Vector3f> corners = {
+        collidingObject.center + Eigen::Vector3f(expandedHalfSize.x(), expandedHalfSize.y(), 0),
+        collidingObject.center + Eigen::Vector3f(expandedHalfSize.x(), -expandedHalfSize.y(), 0),
+        collidingObject.center + Eigen::Vector3f(-expandedHalfSize.x(), expandedHalfSize.y(), 0),
+        collidingObject.center + Eigen::Vector3f(-expandedHalfSize.x(), -expandedHalfSize.y(), 0)};
+
+    // Find the two closest corners to the robot
+    std::sort(corners.begin(), corners.end(), [&robot](const Eigen::Vector3f &a, const Eigen::Vector3f &b)
+              { return (a - robot.center).norm() < (b - robot.center).norm(); });
+
+    for (const auto &cor : corners)
+    {
+        std::cout << "Closest corner:" << cor[0] << " y:" << cor[1] << " z:" << cor[2] << std::endl;
+    }
+    std::cout << "destination:" << destination[0] << " y:" << destination[1] << " z:" << destination[2] << std::endl;
+
+    const float distA = (corners[0] - destination).norm();
+    const float distB = (corners[1] - destination).norm();
+    Eigen::Vector3f bestCorner;
+    // if we are already on a corner we need to check the other 2 corner,
+    // But if we are a distant object we have to only check the 2 closer to us  (otherwise we could collide ttrying to reach the farthest one)
+    if ((corners[0] - robot.center).norm() <= MAPPER_THRESHOLD_DISTANCE_FOR_CORNER)
+    {
+        const float distC = (corners[2] - destination).norm();
+
+        // Select the closest corner to the destination from the two nearest corners
+        bestCorner = (distA < distB)
+                         ? (distA < distC ? corners[0] : corners[2])
+                         : (distB < distC ? corners[1] : corners[2]);
+    }
+    else // 2 corners
+    {
+        bestCorner = (distA < distB) ? corners[0] : corners[1];
+    }
+    return bestCorner;
+}
+
 /// @brief recursive function to get next position to reach toward the destination with detected object
 /// this function if detecting an obstacle will reach the closest position to this object (around it)
 /// then recursively call itself from this new position  to get the next pos
@@ -523,17 +576,14 @@ bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
 void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &robot,
                                                       const Eigen::Vector3f &destination,
                                                       const std::vector<Object3D> &objects,
-                                                      std::vector<Eigen::Vector3f> &pathToFill,
-                                                      int recursionDepth /* = 0 */)
+                                                      std::vector<Eigen::Vector3f> &pathToFill)
 {
-    //    std::cout << " -> Robot pos :" << robot.center << std::endl;
-    if (recursionDepth >= MAPPER_MAX_DEPTH_PATH_NUMBER_POINT)
+    if (pathToFill.size() >= MAPPER_MAX_DEPTH_PATH_NUMBER_POINT)
     {
-        std::cerr << TAG << "Reached max recursion depth " << MAPPER_MAX_DEPTH_PATH_NUMBER_POINT << ", terminating pathfinding!" << std::endl;
+        std::cerr << TAG << "Pathfinding reached max recursion depth " << MAPPER_MAX_DEPTH_PATH_NUMBER_POINT << ", terminating pathfinding!" << std::endl;
         return;
     }
 
-    // Filter objects in the line of view
     std::vector<Object3D> filteredObjects;
     for (const auto &obj : objects)
     {
@@ -551,12 +601,12 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
 
     for (const auto &obj : filteredObjects)
     {
-        // Check if the line from the robot to the destination intersects the object's bounding box
         if (lineIntersectsAABB(robot, obj, destination))
         {
             float distance = (obj.center - robot.center).norm();
             if (distance < closestCollisionDist)
             {
+                std::cout << "Collision detected for " << robot << ", And: " << obj << "in direction of detination: " << destination[0] << ",y:" << destination[1] << ",z:" << destination[2] << std::endl;
                 closestCollisionDist = distance;
                 closestObject = obj;
                 foundCollision = true;
@@ -564,53 +614,31 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
         }
     }
 
-    // If there is a collision, calculate detour point
-  if (foundCollision) {
-        // Determine the corners of the object with a margin for the robot size
-        Eigen::Vector3f halfSizeObj = closestObject.size * 0.5f;
-        Eigen::Vector3f halfSizeRobot = robot.size * 0.5f;
+    if (foundCollision)
+    {
+        auto nextPosition = Mapper::getCollidingNextPositionCloserBorderLogic(robot, closestObject, destination);
 
-        Eigen::Vector3f expandedHalfSize = halfSizeObj + halfSizeRobot;
-
-        std::vector<Eigen::Vector3f> corners = {
-            closestObject.center + Eigen::Vector3f(expandedHalfSize.x(), expandedHalfSize.y(), 0),
-            closestObject.center + Eigen::Vector3f(expandedHalfSize.x(), -expandedHalfSize.y(), 0),
-            closestObject.center + Eigen::Vector3f(-expandedHalfSize.x(), expandedHalfSize.y(), 0),
-            closestObject.center + Eigen::Vector3f(-expandedHalfSize.x(), -expandedHalfSize.y(), 0)
-        };
-
-        // Find the closest corner to the robot that moves toward the destination
-        Eigen::Vector3f bestCorner = corners[0];
-        float minCornerDistance = std::numeric_limits<float>::max();
-        for (const auto &corner : corners) {
-            if ((corner - robot.center).dot(destination - robot.center) > 0) { // Check direction
-                float cornerDistance = (corner - robot.center).norm();
-                if (cornerDistance < minCornerDistance) {
-                    minCornerDistance = cornerDistance;
-                    bestCorner = corner;
-                }
-            }
-        }
-        nextPosition = bestCorner;
-
-        // Debug output
         std::cout << "From ob:" << static_cast<Object3D>(robot)
                   << ", to destination x:" << destination[0] << " y:" << destination[1] << " z:" << destination[2] << std::endl;
         std::cout << "closestObject:" << static_cast<Object3D>(closestObject)
                   << ", nextPosition x:" << nextPosition[0] << " y:" << nextPosition[1] << " z:" << nextPosition[2] << std::endl;
 
-        // Recursively calculate for the new position
         RobotSpatialInfos updatedRobot = RobotSpatialInfos(robot);
         updatedRobot.center = nextPosition;
 
-        if (updatedRobot.center != robot.center) {
+        if (updatedRobot.center != robot.center)
+        {
             pathToFill.push_back(nextPosition);
-            recursiveCalculateNextPathPositionToGoal(updatedRobot, destination, objects, pathToFill, recursionDepth + 1);
-        } else {
+            recursiveCalculateNextPathPositionToGoal(updatedRobot, destination, objects, pathToFill);
+        }
+        else
+        {
             std::cerr << TAG << "ERROR: PATHFINDING entered infinite loop. UpdatedRobot:" << static_cast<Object3D>(updatedRobot)
                       << ", robot:" << static_cast<Object3D>(robot) << std::endl;
         }
-    } else {
+    }
+    else
+    {
         // No collision, go directly to the destination
         pathToFill.push_back(nextPosition);
     }

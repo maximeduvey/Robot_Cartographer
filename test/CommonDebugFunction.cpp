@@ -282,7 +282,7 @@ void CommonDebugFunction::addPointsToCloud(
     uint8_t r, uint8_t g, uint8_t b)
 {
     std::cout << "Path containing :" << pathPoints.size() << std::endl;
-    int nbr = 10;
+    static int nbr = 10;
     for (const auto &point : pathPoints)
     {
         std::string str = std::string( "[x:" + std::to_string(point[0]) + ",y:" + std::to_string(point[1]) + ",z:" + std::to_string(point[2]) + "]");
