@@ -1,0 +1,40 @@
+
+# Flags and other environment variable used to compile the project Mapping and pathfinding
+MAPPING_AND_PATHFINDING_EXTERNAL_LIB = external_lib
+MAPPING_AND_PATHFINDING_PCL_LIB = $(MAPPING_AND_PATHFINDING_EXTERNAL_LIB)/pcl
+
+MAPPING_AND_PATHFINDING_INCLUDE_DIR = include
+MAPPING_AND_PATHFINDING_SRC_DIR = src
+MAPPING_AND_PATHFINDING_DATA_DIR = data
+
+
+MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR="/usr/local/include/pcl-1.14/"
+MAPPING_AND_PATHFINDING_VTK_INCLUDE_DIR="/usr/include/vtk-7.1/"
+
+MAPPING_AND_PATHFINDING_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
+        -lvtkCommonCore-7.1 -lvtkCommonDataModel-7.1 -lvtkCommonMath-7.1 \
+        -lvtkIOCore-7.1 -lvtkIOGeometry-7.1 \
+        -lvtkRenderingCore-7.1 -lvtkRenderingOpenGL2-7.1 -lvtkRenderingFreeType-7.1 \
+        -lvtkFiltersCore-7.1 -lvtkInteractionStyle-7.1 \
+        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
+        -lvtkCommonExecutionModel-7.1
+
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/common/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/build/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/filters/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/search/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/segmentation/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/io/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/kdtree/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/visualization/include/ \
+#    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/sample_consensus/include/ \
+
+MAPPING_AND_PATHFINDING_INCLUDE_FLAGS = -I $(MAPPING_AND_PATHFINDING_INCLUDE_DIR) \
+    -I $(MAPPING_AND_PATHFINDING_INCLUDE_DIR)/$(MAPPING_AND_PATHFINDING_DATA_DIR) \
+    -I $(MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR) \
+    -I $(MAPPING_AND_PATHFINDING_VTK_INCLUDE_DIR) \
+    -I $(MAPPING_AND_PATHFINDING_EXTERNAL_LIB)/eigen
+
+MAPPING_AND_PATHFINDING_SRC_FILES= $(wildcard $(MAPPING_AND_PATHFINDING_SRC_DIR)/Mapper.cpp) \
+    $(wildcard $(MAPPING_AND_PATHFINDING_SRC_DIR)/$(MAPPING_AND_PATHFINDING_DATA_DIR)/*.cpp)
+

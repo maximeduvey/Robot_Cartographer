@@ -1,8 +1,7 @@
 # Directories
-SRC_DIR = src
-INCLUDE_DIR = include
-DATA_DIR = data
-EXTERNAL_LIB = external_lib
+
+include Makefile.rules
+
 TEST_DIR = test
 OBJ_DIR = OBJ
 
@@ -10,42 +9,21 @@ OBJ_DIR = OBJ
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = \
-    -I $(INCLUDE_DIR)/$(DATA_DIR) \
-    -I $(INCLUDE_DIR) \
+INCLUDE_DIRS = \
     -I $(TEST_DIR) \
-    -I $(EXTERNAL_LIB)/eigen \
-    -I $(EXTERNAL_LIB)/pcl/common/include/ \
-    -I $(EXTERNAL_LIB)/pcl/build/include/ \
-    -I $(EXTERNAL_LIB)/pcl/filters/include/ \
-    -I $(EXTERNAL_LIB)/pcl/search/include/ \
-    -I $(EXTERNAL_LIB)/pcl/segmentation/include/ \
-    -I $(EXTERNAL_LIB)/pcl/io/include/ \
-    -I $(EXTERNAL_LIB)/pcl/kdtree/include/ \
-    -I $(EXTERNAL_LIB)/pcl/visualization/include/ \
-    -I $(EXTERNAL_LIB)/pcl/sample_consensus/include/ \
-    -I /usr/include/vtk-7.1/ \
+    $(MAPPING_AND_PATHFINDING_INCLUDE_FLAGS) \
     -Wall -O0 -g
 #-std=c++17
 
 # Libraries
 LDFLAGS =  -Wl,--no-as-needed \
-        -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
-        -lvtkCommonCore-7.1 -lvtkCommonDataModel-7.1 -lvtkCommonMath-7.1 \
-        -lvtkIOCore-7.1 -lvtkIOGeometry-7.1 \
-        -lvtkRenderingCore-7.1 -lvtkRenderingOpenGL2-7.1 -lvtkRenderingFreeType-7.1 \
-        -lvtkFiltersCore-7.1 -lvtkInteractionStyle-7.1 \
-        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
-        -lvtkCommonExecutionModel-7.1 \
+        $(MAPPING_AND_PATHFINDING_COMPILE_FLAGS) \
         -lpthread \
         -lncurses \
         -lm
 
-
-
 # Source files
-SRC_FILES = $(wildcard $(SRC_DIR)/Mapper.cpp) \
-            $(wildcard $(SRC_DIR)/$(DATA_DIR)/*.cpp) \
+SRC_FILES = $(MAPPING_AND_PATHFINDING_SRC_FILES) \
             $(wildcard $(TEST_DIR)/*.cpp)
 
 # Object files
@@ -63,10 +41,10 @@ $(TARGET): $(OBJ_FILES)
 
 # Rule to compile .cpp files to .o files inside OBJ folder
 $(OBJ_DIR)/%.o: %.cpp
-	@mkdir -p $(OBJ_DIR)/$(SRC_DIR)
-	@mkdir -p $(OBJ_DIR)/$(SRC_DIR)/$(DATA_DIR)
+	@mkdir -p $(OBJ_DIR)/$(MAPPING_AND_PATHFINDING_SRC_DIR)
+	@mkdir -p $(OBJ_DIR)/$(MAPPING_AND_PATHFINDING_SRC_DIR)/$(MAPPING_AND_PATHFINDING_DATA_DIR)
 	@mkdir -p $(OBJ_DIR)/$(TEST_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(INCLUDE_DIRS) -c $< -o $@
 
 # Clean up
 clean:
