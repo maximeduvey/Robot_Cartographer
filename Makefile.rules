@@ -1,6 +1,8 @@
 
 # Flags and other environment variable used to compile the project Mapping and pathfinding
 MAPPING_AND_PATHFINDING_EXTERNAL_LIB = external_lib
+
+#MAPPING_AND_PATHFINDING_PCL_LIB = $(MAPPING_AND_PATHFINDING_EXTERNAL_LIB)/pcl
 MAPPING_AND_PATHFINDING_PCL_LIB = /usr/include/pcl-1.12/pcl
 
 MAPPING_AND_PATHFINDING_INCLUDE_DIR = include
@@ -8,7 +10,7 @@ MAPPING_AND_PATHFINDING_SRC_DIR = src
 MAPPING_AND_PATHFINDING_DATA_DIR = data
 
 # Define VTK version
-VTK_VERSION = 9.1
+VTK_VERSION = 7.1
 
 # Include directories for PCL and VTK
 MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR = /usr/local/include/pcl-1.14/

@@ -3,6 +3,8 @@
 # apt install
 sudo apt-get install libvtk7-dev libglew-dev libpcl-dev
 
+sudo apt-get install libncurses5-dev libncursesw5-dev
+
 #if not found
 sudo apt update
 apt search libvtk

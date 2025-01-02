@@ -77,10 +77,18 @@ int main()
 
     // addPointCloudToVisualizer();
     std::thread(&addData).detach();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     while (!SingletonVisualizerManager::getInstance().wasStopped())
     {
         SingletonVisualizerManager::getInstance().spinOnce(100);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
+    return 0;
+}
+
+int main_test() {
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("Viewer"));
+    viewer->addCoordinateSystem(1.0);
+    viewer->spinOnce(100);
     return 0;
 }
