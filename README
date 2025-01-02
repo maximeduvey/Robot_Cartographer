@@ -1,7 +1,7 @@
 
 
 # apt install
-sudo apt-get install libvtk7-dev libglew-dev
+sudo apt-get install libvtk7-dev libglew-dev libpcl-dev
 
 #if not found
 sudo apt update
