@@ -3,6 +3,12 @@
 # apt install
 sudo apt-get install libvtk7-dev libglew-dev
 
+#if not found
+sudo apt update
+apt search libvtk
+sudo apt install libvtk9-dev
+
+
  # or with manually
 sudo apt-get remove libpcl-dev
 sudo apt-get install qtbase5-dev

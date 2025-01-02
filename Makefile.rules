@@ -7,17 +7,21 @@ MAPPING_AND_PATHFINDING_INCLUDE_DIR = include
 MAPPING_AND_PATHFINDING_SRC_DIR = src
 MAPPING_AND_PATHFINDING_DATA_DIR = data
 
+# Define VTK version
+VTK_VERSION = 9.1
 
-MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR="/usr/local/include/pcl-1.14/"
-MAPPING_AND_PATHFINDING_VTK_INCLUDE_DIR="/usr/include/vtk-7.1/"
+# Include directories for PCL and VTK
+MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR = /usr/local/include/pcl-1.14/
+MAPPING_AND_PATHFINDING_VTK_INCLUDE_DIR = /usr/include/vtk-$(VTK_VERSION)/
 
+# Compile flags with dynamic VTK version
 MAPPING_AND_PATHFINDING_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
-        -lvtkCommonCore-7.1 -lvtkCommonDataModel-7.1 -lvtkCommonMath-7.1 \
-        -lvtkIOCore-7.1 -lvtkIOGeometry-7.1 \
-        -lvtkRenderingCore-7.1 -lvtkRenderingOpenGL2-7.1 -lvtkRenderingFreeType-7.1 \
-        -lvtkFiltersCore-7.1 -lvtkInteractionStyle-7.1 \
+        -lvtkCommonCore-$(VTK_VERSION) -lvtkCommonDataModel-$(VTK_VERSION) -lvtkCommonMath-$(VTK_VERSION) \
+        -lvtkIOCore-$(VTK_VERSION) -lvtkIOGeometry-$(VTK_VERSION) \
+        -lvtkRenderingCore-$(VTK_VERSION) -lvtkRenderingOpenGL2-$(VTK_VERSION) -lvtkRenderingFreeType-$(VTK_VERSION) \
+        -lvtkFiltersCore-$(VTK_VERSION) -lvtkInteractionStyle-$(VTK_VERSION) \
         -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
-        -lvtkCommonExecutionModel-7.1
+        -lvtkCommonExecutionModel-$(VTK_VERSION)
 
 #    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/common/include/ \
 #    -I $(MAPPING_AND_PATHFINDING_PCL_LIB)/build/include/ \
