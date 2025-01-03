@@ -1,5 +1,5 @@
 
-#include "RobotSpatialInfos.h"
+#include <RobotSpatialInfos.h>
 
 RobotSpatialInfos::RobotSpatialInfos() : Object3D({0.0f, 0.0f, 0.0f}, {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT})
 {

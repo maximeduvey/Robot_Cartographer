@@ -1,5 +1,5 @@
 
-#include "Mapper.h"
+#include <Mapper.h>
 
 #include <fstream>
 #include <vector>
@@ -8,8 +8,7 @@
 #include <functional>
 #include <Eigen/Dense>
 
-// todelete
-#include "CommonDebugFunction.h"
+#include <CommonDebugFunction.h>
 
 #define AABB_LOG_DEBUG false
 
@@ -228,11 +227,12 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         }
         std::cout << "Done" << std::endl;
 
-        /*         auto desination_goal = Eigen::Vector3f{100, 50, 0.0f};
-                _robotInfos.center = Eigen::Vector3f{0.0f, 50.0f, 0.0f}; */
+                auto desination_goal = Eigen::Vector3f{100, 50, 0.0f};
+                _robotInfos.center = Eigen::Vector3f{0.0f, 0.0f, 0.0f};
+                //_robotInfos.center = Eigen::Vector3f{0.0f, 50.0f, 0.0f};
 
-        _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
-        auto desination_goal = Eigen::Vector3f{0.0f, 50.0f, 0.0f};
+/*         _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
+        auto desination_goal = Eigen::Vector3f{0.0f, 50.0f, 0.0f}; */
 
         // Optional: Save the occupancy grid for debugging
         // CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
@@ -248,11 +248,17 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         // auto path = findPath(occupancyGrid, 0, 50, 100, 50);
         // CommonDebugFunction::savePathToPointCloud(path, "path.log");
         std::vector<Eigen::Vector3f> pointsPathToDest;
-        recursiveCalculateNextPathPositionToGoal(_robotInfos, desination_goal, refined_currentDetectedObject, pointsPathToDest);
-        Object3D ob;
-        ob.center = _robotInfos.center;
-        ob.size = _robotInfos.size;
-        CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath");
+        //recursiveCalculateNextPathPositionToGoal(_robotInfos, desination_goal, refined_currentDetectedObject, pointsPathToDest);
+        
+/*         _mutexPointsPathToDest.lock();
+        _pointsPathToDest = pointsPathToDest;
+        _mutexPointsPathToDest.unlock(); */
+
+/*         if (_fieldPointsCallback_dataProcessed)
+            _fieldPointsCallback_dataProcessed(_pointsPathToDest); */
+
+        CommonDebugFunction::savePointCloudToFile(_robotInfos, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath");
+
 
         /*         if (refined_lastDetectedObject.size() > 0)
                 {

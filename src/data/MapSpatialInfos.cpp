@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "MapSpatialInfos.h"
+#include <MapSpatialInfos.h>
 
 MapSpatialInfos::MapSpatialInfos() : _grid_center_x(grid_lenght / 2), _grid_center_y(grid_width / 2) {}
 

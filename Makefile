@@ -1,5 +1,6 @@
 # Directories
-
+# this allow to set the origin and make every include make abel to also add the include flags
+MAPPING_AND_PATHFINDING_SOURCE_PATH = $(PWD)
 include Makefile.rules
 
 TEST_DIR = test
@@ -24,7 +25,13 @@ LDFLAGS =  -Wl,--no-as-needed \
 
 # Source files
 SRC_FILES = $(MAPPING_AND_PATHFINDING_SRC_FILES) \
-            $(wildcard $(TEST_DIR)/*.cpp)
+            $(TEST_DIR)/CreationTools.cpp \
+            $(TEST_DIR)/main.cpp
+
+
+$(info SRC_FILES=$(SRC_FILES))
+#RELATIVE_SRC_FILES := $(subst $(CURDIR)/,,$(SRC_FILES))
+#$(info RELATIVE_SRC_FILES=$(RELATIVE_SRC_FILES))
 
 # Object files
 OBJ_FILES = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SRC_FILES))
@@ -41,9 +48,7 @@ $(TARGET): $(OBJ_FILES)
 
 # Rule to compile .cpp files to .o files inside OBJ folder
 $(OBJ_DIR)/%.o: %.cpp
-	@mkdir -p $(OBJ_DIR)/$(MAPPING_AND_PATHFINDING_SRC_DIR)
-	@mkdir -p $(OBJ_DIR)/$(MAPPING_AND_PATHFINDING_SRC_DIR)/$(MAPPING_AND_PATHFINDING_DATA_DIR)
-	@mkdir -p $(OBJ_DIR)/$(TEST_DIR)
+	@mkdir -p $(dir $@)
 	$(CXX) $(INCLUDE_DIRS) -c $< -o $@
 
 # Clean up

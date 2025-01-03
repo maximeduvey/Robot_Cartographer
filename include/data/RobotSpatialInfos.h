@@ -12,7 +12,7 @@
 #include <iostream>
 #include <ctime>
 
-#include "CommonSpaceRepresentation.h"
+#include <CommonSpaceRepresentation.h>
 
 #define PAMI_ROBOT_SIZE_LENGTH 4 // 90.0f mm
 #define PAMI_ROBOT_SIZE_WIDTH 4  // 110.0f mm

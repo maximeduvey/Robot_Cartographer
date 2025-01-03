@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "CommonSpaceRepresentation.h"
+#include <CommonSpaceRepresentation.h>
 
 /// @brief The goal of the PositionController is to be the traduction and accessor of the robot infos (RobotSpatialInfos)
 /// it has to manage both the traduction from motor raw data (and keep track of it) to "absolute" position traduction

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lidar_LD06.h"
+#include <Lidar_LD06.h>
 
 /// @brief The goal of this class it to manage the perception of the surrounding of the PAMI
 /// (So to manage the lidar) and feed the mapper with the data, and use the pathfinder

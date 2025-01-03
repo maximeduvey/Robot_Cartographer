@@ -1,13 +1,14 @@
 #pragma once
 
-#include "CommonSpaceRepresentation.h"
-#include "MapSpatialInfos.h"
-#include "RobotSpatialInfos.h"
+#include <CommonSpaceRepresentation.h>
+#include <MapSpatialInfos.h>
+#include <RobotSpatialInfos.h>
 
 #include <vector>
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <functional>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -73,6 +74,8 @@ private:
     };
 
 public:
+    using FieldPointsCallback = std::function<void(const FieldPoints&)>;
+
     Mapper(MapSpatialInfos map = MapSpatialInfos(),
            float startAngleManaged = MAPPER_MIN_FIELD_VIEW,
            float endAngleManaged = MAPPER_MAX_FIELD_VIEW);
@@ -102,6 +105,9 @@ public:
     /// Inliner ///
     inline bool isRunning() { return _end.load(); }
     ///         ///
+
+    // Function to set the callback
+    inline void setFieldPointsCallback(FieldPointsCallback callback) { _fieldPointsCallback_dataProcessed = callback; };
 private:
     static void loop_parseFieldPoints(Mapper *myself);
 
@@ -170,4 +176,11 @@ private:
     std::mutex _mutexDetectedObject;
     std::vector<Object3D> refined_currentDetectedObject;
     std::vector<Object3D> refined_lastDetectedObject;
+
+    // callback to be informed when the data from the Lidar has been proccessed, will surely be replaced
+    FieldPointsCallback _fieldPointsCallback_dataProcessed;
+
+    // a list of points to reach the current goal destination
+    std::mutex _mutexPointsPathToDest;
+    std::vector<Eigen::Vector3f> _pointsPathToDest;
 };
