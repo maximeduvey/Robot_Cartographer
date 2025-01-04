@@ -11,7 +11,8 @@
 
 #include "SingletonVisualizerManager.h"
 
-Mapper map;
+MapSpatialInfos msi(200, 300, 1);
+Mapper map(msi);
 
 void addPointCloudToVisualizer()
 {
@@ -76,7 +77,7 @@ int main()
     // CommonDebugFunction::saveOccupancyGridToFile(map._occupancy_grid, "output.log", {0,0,0},{0,0,0});
 
     // addPointCloudToVisualizer();
-    std::thread(&addData).detach();
+    //std::thread(&addData).detach();
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     while (!SingletonVisualizerManager::getInstance().wasStopped())
     {

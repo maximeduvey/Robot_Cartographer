@@ -5,7 +5,7 @@
 
 #define MAPSPATIALINFOS_WIDTH 30000  // 3 Metre
 #define MAPSPATIALINFOS_LENGHT 20000 // 2 Metre
-#define MAPSPATIALINFOS_DEFAULT_GRID_RESOLUTION 1.0f // each grid square will be of 1cm square
+#define MAPSPATIALINFOS_DEFAULT_GRID_RESOLUTION 1.0f 
 
 /// @brief This class is all the infos related to a map
 /// BECAREFUL: it can be a map the robot is moving on or a map used to represent what the robot is seeing

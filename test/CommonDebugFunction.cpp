@@ -301,10 +301,13 @@ void CommonDebugFunction::addPointsToCloud(
 /// @param g 
 /// @param b 
 pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
-    const Object3D &object,
+    const Object3D &ob,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-    uint8_t r, uint8_t g, uint8_t b)
+    uint8_t r, uint8_t g, uint8_t b,
+    const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
+    Object3D object(ob);
+    object.center = object.center + shifter;
     // Represent the object by its center position
     pcl::PointXYZRGB pclPoint;
     pclPoint.x = object.center.x();
@@ -378,14 +381,15 @@ void CommonDebugFunction::writeCloudWriter(
 
 void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ> &inputCloud,
                                            pcl::PointCloud<pcl::PointXYZRGB>::Ptr &outputCloud,
-                                           uint8_t r, uint8_t g, uint8_t b)
+                                           uint8_t r, uint8_t g, uint8_t b,
+                                           const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
     for (const auto &point : inputCloud.points)
     {
         pcl::PointXYZRGB coloredPoint;
-        coloredPoint.x = point.x;
-        coloredPoint.y = point.y;
-        coloredPoint.z = point.z;
+        coloredPoint.x = point.x + shifter.x();
+        coloredPoint.y = point.y + shifter.y();
+        coloredPoint.z = point.z + shifter.z();
         coloredPoint.r = r;
         coloredPoint.g = g;
         coloredPoint.b = b;
@@ -446,7 +450,8 @@ void CommonDebugFunction::savePointCloudToFile(
     const pcl::PointCloud<pcl::PointXYZ> &cloud2,
     const std::vector<Eigen::Vector3f> &pathPoints,
     const std::vector<Object3D> &detectedObjects,
-    const std::string &filename)
+    const std::string &filename,
+    const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
     //std::cout << TAG << "A" << std::endl;
     //SingletonVisualizerManager::getInstance().clearViewer();
@@ -461,7 +466,7 @@ void CommonDebugFunction::savePointCloudToFile(
     cloud->points.push_back(destPoint);
     SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
 
-    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE, shifter);
     CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
     CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
     

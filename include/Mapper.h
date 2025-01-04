@@ -22,6 +22,14 @@
 #define MAPPER_MIN_FIELD_VIEW 0.0f
 
 #define MAPPER_GRID_RESOLUTION 1.0f // each grid square will be of 1cm square
+// define how many number of point need to be in a section to be considered a "cluster" and translated to an object
+// it's managed my pcl with setMinClusterSize, and can depend on how we proceed the lidar data
+// currently set as one, but, to my point of view, it should alwais be highier than one (to prevent some risk of false data poluting)
+// but in the meanwhile, set to one for classic lidar data (not high resolution)
+#define MAPPER_GRID_RESOLUTION_CLUSTER_POINT 1.0f
+#define MAPPER_GRID_RESOLUTION_CLUSTER_DISTANCE_TOLERANCE 1.0f
+// a cluster with to many point is skeep, this is the threshold, for lidar data it's way beyond what is needed
+#define MAPPER_GRID_RESOLUTION_CLUSTER_NUMBER_TOLERANCE 25000
 
 #define MAPPER_CLOUD_POINT_FILTERING_THRESHOLD 5
 #define MAPPER_DEFAULT_WAITING_TIME_PARSER_EMPTY_LIST 1000 // 1sec
@@ -183,4 +191,8 @@ private:
     // a list of points to reach the current goal destination
     std::mutex _mutexPointsPathToDest;
     std::vector<Eigen::Vector3f> _pointsPathToDest;
+
+    /// this allow us to shift the detected points to the "center" of our physical c++ map
+    /// our perception is around the robot, so points can be negative but our map start at 0
+    Eigen::Vector3f _mapCenterShifter = {0, 0, 0};
 };

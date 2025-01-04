@@ -22,6 +22,9 @@ Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
     _occupancy_grid = std::vector<std::vector<std::pair<bool, int>>>(
         map.grid_lenght,
         std::vector<std::pair<bool, int>>(map.grid_width, {false, 0}));
+
+    _mapCenterShifter = {map.get_grid_center_x(), map.get_grid_center_y(), 0};
+    //_mapCenterShifter = {0, 0, 0};
 }
 
 Mapper::~Mapper()
@@ -86,9 +89,6 @@ void Mapper::loop_parseFieldPoints(Mapper *myself)
             std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
             for (const auto &fieldpoints : myself->_dataToParse)
             {
-                /* for (const auto &point : fieldpoints.points) {
-                    myself->parsePointToMap_pointsAreRelativeToRobot(point);
-                } */
                 myself->processLidarData(fieldpoints.points);
             }
             myself->_dataToParse.clear();
@@ -192,9 +192,9 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
     std::cout << "Before filter : cloud_filtered.size : " << (*cloud_filtered).size() << std::endl;
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance(1);   // Distance tolerance for clustering
-    ec.setMinClusterSize(5);     // Minimum number of points for a valid cluster
-    ec.setMaxClusterSize(25000); // Maximum number of points per cluster
+    ec.setClusterTolerance(MAPPER_GRID_RESOLUTION_CLUSTER_DISTANCE_TOLERANCE);   // Distance tolerance for clustering
+    ec.setMinClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_POINT);     // Minimum number of points for a valid cluster
+    ec.setMaxClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_NUMBER_TOLERANCE); // Maximum number of points per cluster
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud_filtered);
     ec.extract(cluster_indices);
@@ -213,8 +213,8 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
                 pcl::PointXYZ point = cloud_filtered->points[index];
 
                 // Convert point coordinates to grid indices
-                int gridX = static_cast<int>(point.x / _map.gridResolution);
-                int gridY = static_cast<int>(point.y / _map.gridResolution);
+                int gridX = static_cast<int>((point.x / _map.gridResolution) + _mapCenterShifter.x());
+                int gridY = static_cast<int>((point.y / _map.gridResolution) + _mapCenterShifter.y());
 
                 // std::cout << "point x:" << point.x << ", point.y:" << point.y << ", gridX:" << gridX << ", gridy: " << gridY << std::endl;
 
@@ -227,8 +227,8 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         }
         std::cout << "Done" << std::endl;
 
-                auto desination_goal = Eigen::Vector3f{100, 50, 0.0f};
-                _robotInfos.center = Eigen::Vector3f{0.0f, 0.0f, 0.0f};
+                auto desination_goal = Eigen::Vector3f{100, 50, 0.0f} + _mapCenterShifter;
+                _robotInfos.center = Eigen::Vector3f{0.0f, 0.0f, 0.0f} + _mapCenterShifter;
                 //_robotInfos.center = Eigen::Vector3f{0.0f, 50.0f, 0.0f};
 
 /*         _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
@@ -236,11 +236,10 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
 
         // Optional: Save the occupancy grid for debugging
         // CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
-        std::cout << "Done 2" << std::endl;
         _mutexDetectedObject.lock();
         refined_lastDetectedObject = refined_currentDetectedObject;
         refined_currentDetectedObject = refineMapToObjects(occupancyGrid);
-        std::cout << "Done 3" << std::endl;
+        std::cout << TAG << "Refined objects:" << refined_currentDetectedObject.size() << std::endl;
         _mutexDetectedObject.unlock();
         // CommonDebugFunction::display3dObject(refined_currentDetectedObject);
 
@@ -248,7 +247,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
         // auto path = findPath(occupancyGrid, 0, 50, 100, 50);
         // CommonDebugFunction::savePathToPointCloud(path, "path.log");
         std::vector<Eigen::Vector3f> pointsPathToDest;
-        //recursiveCalculateNextPathPositionToGoal(_robotInfos, desination_goal, refined_currentDetectedObject, pointsPathToDest);
+        recursiveCalculateNextPathPositionToGoal(_robotInfos, desination_goal, refined_currentDetectedObject, pointsPathToDest);
         
 /*         _mutexPointsPathToDest.lock();
         _pointsPathToDest = pointsPathToDest;
@@ -257,7 +256,7 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
 /*         if (_fieldPointsCallback_dataProcessed)
             _fieldPointsCallback_dataProcessed(_pointsPathToDest); */
 
-        CommonDebugFunction::savePointCloudToFile(_robotInfos, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath");
+        CommonDebugFunction::savePointCloudToFile(_robotInfos, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath", _mapCenterShifter);
 
 
         /*         if (refined_lastDetectedObject.size() > 0)

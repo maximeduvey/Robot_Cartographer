@@ -32,6 +32,39 @@ std::vector<Point> CreationTools::generateTestPoints(Eigen::Vector3f decalage /*
     points.push_back(Point{Eigen::Vector3f(4.0f, 4.0f, 0.0f), 200});
     points.push_back(Point{Eigen::Vector3f(5.0f, 5.0f, 0.0f), 150});
 
+    // generate a cross line
+    pts = generateLineOfPointsForObj(
+        Object3D{
+            Eigen::Vector3f(0, 50, 0.0f) + decalage,
+            Eigen::Vector3f(25, 1, 1)});
+    points.insert(points.end(), pts.begin(), pts.end());
+    pts = generateLineOfPointsForObj(
+        Object3D{
+            Eigen::Vector3f(0, 50, 0.0f) + decalage,
+            Eigen::Vector3f(1, 25, 1)});
+    points.insert(points.end(), pts.begin(), pts.end());
+
+
+    // generate a line
+        pts = generateLineOfPointsForObj(
+        Object3D{
+            Eigen::Vector3f(50, 0, 0.0f) + decalage,
+            Eigen::Vector3f(25, 1, 1)});
+    points.insert(points.end(), pts.begin(), pts.end());
+
+            pts = generateLineOfPointsForObj(
+        Object3D{
+            Eigen::Vector3f(-50, 0, 0.0f) + decalage,
+            Eigen::Vector3f(1, 25, 1)});
+    points.insert(points.end(), pts.begin(), pts.end());
+
+    // line in Bias
+    pts = generateLineOfPointsFromTo(
+            Eigen::Vector3f(-25, -25, 0),
+            Eigen::Vector3f(10, -5, 0) );
+    points.insert(points.end(), pts.begin(), pts.end());
+    
+
     return points;
 }
 
@@ -63,3 +96,52 @@ std::vector<Point> CreationTools::generateCloudOfPointsForObj(const Object3D &ob
 
     return points;
 }
+
+std::vector<Point> CreationTools::generateLineOfPointsForObj(const Object3D &obj)
+{
+    std::vector<Point> points;
+
+    // Calculate line start and end based on the object's center and size
+    Eigen::Vector3f start = obj.center - obj.size * 0.5f;
+    Eigen::Vector3f end = obj.center + obj.size * 0.5f;
+
+    // Number of points along the line
+    const float step = 0.5f; // Spacing between points
+    float distance = (end - start).norm();
+    int numPoints = static_cast<int>(distance / step);
+
+    // Generate points along the line
+    Eigen::Vector3f direction = (end - start).normalized();
+    for (int i = 0; i <= numPoints; ++i)
+    {
+        Eigen::Vector3f pos = start + direction * (i * step);
+        points.emplace_back(Point{pos, static_cast<uint16_t>(50)});
+    }
+
+    return points;
+}
+
+std::vector<Point> CreationTools::generateLineOfPointsFromTo(const Eigen::Vector3f &start, const Eigen::Vector3f &end)
+{
+    std::vector<Point> points;
+
+    // Calculate the direction vector and distance
+    Eigen::Vector3f direction = (end - start).normalized();
+    float distance = (end - start).norm();
+
+    // Define the step size for point generation
+    //const float step = 0.5f; // Spacing between points // working
+    const float step = 1; // Spacing between points
+    int numPoints = static_cast<int>(distance / step);
+
+    // Generate points along the line
+    for (int i = 0; i <= numPoints; ++i)
+    {
+        Eigen::Vector3f pos = start + direction * (i * step);
+        points.emplace_back(Point{pos, static_cast<uint16_t>(50)});
+    }
+
+    return points;
+}
+
+

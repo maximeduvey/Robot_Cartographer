@@ -30,6 +30,7 @@
 
 class CommonDebugFunction
 {
+
 public:
     static void display3dObject(std::vector<Object3D> objects);
 
@@ -80,9 +81,10 @@ public:
         uint8_t r, uint8_t g, uint8_t b);
 
     static pcl::PointXYZRGB addObjectToCloud(
-        const Object3D &object,
+        const Object3D &ob,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
+        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
     static void addObjectsToCloud(
         const std::vector<Object3D> &detectedObjects,
@@ -95,7 +97,8 @@ public:
     static void mergePointClouds(
         const pcl::PointCloud<pcl::PointXYZ> &inputCloud,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &outputCloud,
-        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
+        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
     static void savePointCloudToFile(
         const pcl::PointCloud<pcl::PointXYZ> &cloud2,
@@ -116,5 +119,6 @@ public:
         const pcl::PointCloud<pcl::PointXYZ> &cloud2,
         const std::vector<Eigen::Vector3f> &pathPoints,
         const std::vector<Object3D> &detectedObjects,
-        const std::string &filename);
+        const std::string &filename,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 };
