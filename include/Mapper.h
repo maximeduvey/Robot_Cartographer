@@ -116,6 +116,8 @@ public:
 
     // Function to set the callback
     inline void setFieldPointsCallback(FieldPointsCallback callback) { _fieldPointsCallback_dataProcessed = callback; };
+    
+    std::pair<RobotSpatialInfos, Eigen::Vector3f> getCenteredRobotAndGoal();
 private:
     static void loop_parseFieldPoints(Mapper *myself);
 
@@ -153,7 +155,6 @@ private:
 
     std::vector<Eigen::Vector3f> getCurrentPathfindingToDest();
 
-    std::pair<RobotSpatialInfos, Eigen::Vector3f> getCenteredRobotAndGoal();
     
     std::vector<Object3D> getRefinedCurrentDetectedObject();
     std::vector<Object3D> getRefinedLastDetectedObject();

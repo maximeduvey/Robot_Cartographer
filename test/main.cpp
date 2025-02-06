@@ -40,7 +40,7 @@ void addData()
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     FieldPoints field;
-    map._robotInfos.getMovementFromLastMeasure();
+    SingletonGameState::getInstance().getRobotInfos().getMovementFromLastMeasure();
 
     field.points = CreationTools::generateTestPoints({-30, -30, 0});
 /*     auto points = CreationTools::generateTestPoints({-50, -30, 0});
