@@ -62,7 +62,7 @@ void SingletonVisualizerManager::updatePointCloud(const pcl::PointCloud<pcl::Poi
 /// @param id 
 void SingletonVisualizerManager::addTextToPoint(const pcl::PointXYZRGB &point, std::string text, uint8_t r, uint8_t g, uint8_t b, int id)
 {
-    
+    std::lock_guard<std::mutex> lock(viewerMutex);
     viewer->addText3D<pcl::PointXYZRGB>(
         text,                 // Text to display
         point,                     // Position of the text

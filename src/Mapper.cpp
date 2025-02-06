@@ -9,22 +9,25 @@
 #include <Eigen/Dense>
 
 #include <CommonDebugFunction.h>
+#include <SingletonGameState.h>
 
 #define AABB_LOG_DEBUG false
 
 Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
-               float startAngleManaged /*= MAPPER_MIN_FIELD_VIEW*/,
-               float endFieldOfView /* = MAPPER_MAX_FIELD_VIEW*/)
+    float startAngleManaged /*= MAPPER_MIN_FIELD_VIEW*/,
+    float endFieldOfView /* = MAPPER_MAX_FIELD_VIEW*/)
 {
     std::cout << TAG << std::endl;
     setManagedAngleFieldOFView(startAngleManaged, endFieldOfView);
     _end.store(false);
     _occupancy_grid = std::vector<std::vector<std::pair<bool, int>>>(
         map.grid_lenght,
-        std::vector<std::pair<bool, int>>(map.grid_width, {false, 0}));
+        std::vector<std::pair<bool, int>>(map.grid_width, { false, 0 }));
 
-    _mapCenterShifter = {map.get_grid_center_x(), map.get_grid_center_y(), 0};
+    _mapCenterShifter = { map.get_grid_center_x(), map.get_grid_center_y(), 0 };
     //_mapCenterShifter = {0, 0, 0};
+
+    _enablePathFinding.store(false);
 }
 
 Mapper::~Mapper()
@@ -74,7 +77,7 @@ void Mapper::setNoiseFilterNbrCorelationPoint(int nbr)
 
 // for debug
 
-void Mapper::loop_parseFieldPoints(Mapper *myself)
+void Mapper::loop_parseFieldPoints(Mapper* myself)
 {
 
     std::cout << TAG << std::endl;
@@ -87,7 +90,7 @@ void Mapper::loop_parseFieldPoints(Mapper *myself)
         {
             myself->_mutextDataToParse.lock();
             std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
-            for (const auto &fieldpoints : myself->_dataToParse)
+            for (const auto& fieldpoints : myself->_dataToParse)
             {
                 myself->processLidarData(fieldpoints.points);
             }
@@ -102,7 +105,25 @@ void Mapper::loop_parseFieldPoints(Mapper *myself)
     }
 }
 
-void Mapper::addDataToParse(const FieldPoints &fieldPoints)
+/// @brief enabling the pathfinding will automatically calculate it to the destination after each data update
+/// providing 
+void Mapper::enablePathFinding(bool val)
+{
+    _enablePathFinding.store(val);
+}
+
+bool Mapper::isPathFindingEnabled()
+{
+    return _enablePathFinding.load();
+}
+
+std::vector<Eigen::Vector3f> Mapper::getCurrentPathfindingToDest()
+{
+    std::lock_guard<std::mutex> lock(_mutexPointsPathToDest);
+    return _pointsPathToDest;
+}
+
+void Mapper::addDataToParse(const FieldPoints& fieldPoints)
 {
     std::cout << TAG << std::endl;
     _mutextDataToParse.lock();
@@ -112,7 +133,7 @@ void Mapper::addDataToParse(const FieldPoints &fieldPoints)
 
 /// @brief Points are relative to the robot and are relative to it's rotation
 /// @param point
-void Mapper::parsePointToMap_pointsAreRelativeToRobot(const Point &point)
+void Mapper::parsePointToMap_pointsAreRelativeToRobot(const Point& point)
 {
     // std::cout << TAG << std::endl;
     const auto absPoint = transformPointToGlobal(point);
@@ -121,27 +142,27 @@ void Mapper::parsePointToMap_pointsAreRelativeToRobot(const Point &point)
 
 /// @brief Points x,y are aboslute and does not depend of the robot position or rotation
 /// @param point
-void Mapper::parsePointToMap_pointsAreAbsolute(const Point &point)
+void Mapper::parsePointToMap_pointsAreAbsolute(const Point& point)
 {
 }
 
 // @brief used to convert a relative-to-robot point to an absolute one
 // @param point
-Point Mapper::transformPointToGlobal(const Point &point)
+Point Mapper::transformPointToGlobal(const Point& point)
 {
     Point ret = point;
     // Convert robot-relative point to a global map point
-    float theta = _robotInfos._currentRobotAngle;
+/*     float theta = _robotInfos._currentRobotAngle;
     float cos_theta = std::cos(theta);
     float sin_theta = std::sin(theta);
 
     ret.pos.x() = point.pos.x() * cos_theta - point.pos.y() * sin_theta + _robotInfos.center.x();
     ret.pos.y() = point.pos.x() * sin_theta + point.pos.y() * cos_theta + _robotInfos.center.y();
-
+ */
     return ret;
 }
 
-void Mapper::updateOccupancyGrid(const Point &global_point)
+void Mapper::updateOccupancyGrid(const Point& global_point)
 {
     // Convert global point coordinates to grid cell indices
     int grid_x = static_cast<int>(std::round(global_point.pos.y() / _map.gridResolution)) + (_map.grid_width / 2);
@@ -152,10 +173,10 @@ void Mapper::updateOccupancyGrid(const Point &global_point)
     }
 }
 
-pcl::PointCloud<pcl::PointXYZ> Mapper::convertToPCLCloud(const std::vector<Point> &lidarPoints)
+pcl::PointCloud<pcl::PointXYZ> Mapper::convertToPCLCloud(const std::vector<Point>& lidarPoints)
 {
     auto cloud = pcl::PointCloud<pcl::PointXYZ>();
-    for (const auto &pt : lidarPoints)
+    for (const auto& pt : lidarPoints)
     {
         cloud.points.emplace_back(pt.pos.x(), pt.pos.y(), pt.pos.z());
     }
@@ -167,56 +188,50 @@ pcl::PointCloud<pcl::PointXYZ> Mapper::convertToPCLCloud(const std::vector<Point
 
 /// @brief this function will basically noise filter the data and fill occupancyGrid
 /// @param lidarPoints
-void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
+void Mapper::processLidarData(const std::vector<Point>& lidarPoints)
 {
+    _mutexIsParsingData.lock();
     // Convert lidar data to PCL point cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    *cloud = convertToPCLCloud(lidarPoints); // Assuming convertToPCLCloud correctly converts the vector
-
-    // CommonDebugFunction::savePointCloudToFile(*cloud, "cloud.log");
+    _parsingDataPointCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
+    *_parsingDataPointCloud = convertToPCLCloud(lidarPoints);
 
     // 1. Noise Filtering using Statistical Outlier Removal
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
+    _parsingDataPointCloudFiltered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-    sor.setInputCloud(cloud);
+    sor.setInputCloud(_parsingDataPointCloud);
     sor.setMeanK(_noiseFilter_nbrCorelationPoint.load()); // Set number of neighbors to analyze
     sor.setStddevMulThresh(1.0);                          // Threshold for outliers
-    sor.filter(*cloud_filtered);
+    sor.filter(*_parsingDataPointCloudFiltered);
 
-    // CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered.log");
-
-    // 2. Clustering using Euclidean Cluster Extraction
+    // 2. Clustering (filter) using Euclidean Cluster Extraction
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
-    tree->setInputCloud(cloud_filtered);
+    tree->setInputCloud(_parsingDataPointCloudFiltered);
 
-    std::cout << "Before filter : cloud_filtered.size : " << (*cloud_filtered).size() << std::endl;
+    std::cout << "Before filter : cloud_filtered.size : " << _parsingDataPointCloudFiltered->size() << std::endl;
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
     ec.setClusterTolerance(MAPPER_GRID_RESOLUTION_CLUSTER_DISTANCE_TOLERANCE);   // Distance tolerance for clustering
     ec.setMinClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_POINT);     // Minimum number of points for a valid cluster
     ec.setMaxClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_NUMBER_TOLERANCE); // Maximum number of points per cluster
     ec.setSearchMethod(tree);
-    ec.setInputCloud(cloud_filtered);
+    ec.setInputCloud(_parsingDataPointCloudFiltered);
     ec.extract(cluster_indices);
 
-    // CommonDebugFunction::savePointCloudToFile(*cloud_filtered, "cloud_filtered2.log");
-
-    // 3. Create an Occupancy Grid
+    // 3. Create an Occupancy Grid, really useful when we have big grid cell that can contain multiple point
+    // in most lidar case we have one dot per cell
     std::cout << "cluster_indices.size : " << cluster_indices.size() << std::endl;
     if (cluster_indices.size() > 0)
     {
         std::vector<std::vector<int>> occupancyGrid(_map.grid_width, std::vector<int>(_map.grid_lenght, 0));
-        for (const auto &cluster : cluster_indices)
+        for (const auto& cluster : cluster_indices)
         {
-            for (const int &index : cluster.indices)
+            for (const int& index : cluster.indices)
             {
-                pcl::PointXYZ point = cloud_filtered->points[index];
+                pcl::PointXYZ point = _parsingDataPointCloudFiltered->points[index];
 
                 // Convert point coordinates to grid indices
                 int gridX = static_cast<int>((point.x / _map.gridResolution) + _mapCenterShifter.x());
                 int gridY = static_cast<int>((point.y / _map.gridResolution) + _mapCenterShifter.y());
-
-                // std::cout << "point x:" << point.x << ", point.y:" << point.y << ", gridX:" << gridX << ", gridy: " << gridY << std::endl;
 
                 // Check bounds before writing to the grid
                 if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
@@ -225,64 +240,48 @@ void Mapper::processLidarData(const std::vector<Point> &lidarPoints)
                 }
             }
         }
-        std::cout << "Done" << std::endl;
 
-                auto desination_goal = Eigen::Vector3f{100, 50, 0.0f} + _mapCenterShifter;
-                _robotInfos.center = Eigen::Vector3f{0.0f, 0.0f, 0.0f} + _mapCenterShifter;
-                //_robotInfos.center = Eigen::Vector3f{0.0f, 50.0f, 0.0f};
-
-/*         _robotInfos.center = Eigen::Vector3f{100, 50, 0.0f};
-        auto desination_goal = Eigen::Vector3f{0.0f, 50.0f, 0.0f}; */
-
-        // Optional: Save the occupancy grid for debugging
-        // CommonDebugFunction::saveOccupancyGridToFile(occupancyGrid, "occupancy_grid.log", desination_goal, _robotInfos.center);
+        // refine ocupancy to ojects, so that we can easily calculate around it
         _mutexDetectedObject.lock();
-        refined_lastDetectedObject = refined_currentDetectedObject;
-        refined_currentDetectedObject = refineMapToObjects(occupancyGrid);
-        std::cout << TAG << "Refined objects:" << refined_currentDetectedObject.size() << std::endl;
+        _refinedLastDetectedObject = _refinedCurrentDetectedObject;
+        _refinedCurrentDetectedObject = refineMapToObjects(occupancyGrid);
+        std::cout << TAG << "Refined objects:" << _refinedCurrentDetectedObject.size() << std::endl;
         _mutexDetectedObject.unlock();
-        // CommonDebugFunction::display3dObject(refined_currentDetectedObject);
 
-        // // Run Pathfinding with Occupancy Grid
-        // auto path = findPath(occupancyGrid, 0, 50, 100, 50);
-        // CommonDebugFunction::savePathToPointCloud(path, "path.log");
-        std::vector<Eigen::Vector3f> pointsPathToDest;
-        recursiveCalculateNextPathPositionToGoal(_robotInfos, desination_goal, refined_currentDetectedObject, pointsPathToDest);
-        
-/*         _mutexPointsPathToDest.lock();
-        _pointsPathToDest = pointsPathToDest;
-        _mutexPointsPathToDest.unlock(); */
+        if (_enablePathFinding.load() == true) {
+            auto rob_and_dest = getCenteredRobotAndGoal();
+            std::lock_guard<std::mutex> lock(_mutexPointsPathToDest);
+            recursiveCalculateNextPathPositionToGoal(rob_and_dest.first, rob_and_dest.second, _refinedCurrentDetectedObject, _pointsPathToDest);
+        }
 
-/*         if (_fieldPointsCallback_dataProcessed)
-            _fieldPointsCallback_dataProcessed(_pointsPathToDest); */
+        // CommonDebugFunction::savePointCloudToFile(_robotInfos, desination_goal, *_parsingDataPointCloudFiltered, _pointsPathToDest, _refinedCurrentDetectedObject, "objectAndPath", -_mapCenterShifter);
 
-        CommonDebugFunction::savePointCloudToFile(_robotInfos, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "objectAndPath", _mapCenterShifter);
-
-
-        /*         if (refined_lastDetectedObject.size() > 0)
-                {
-                    linkDetectedObjects(
-                        refined_currentDetectedObject,
-                        refined_lastDetectedObject,
-                        _robotInfos.getMovementFromLastMeasure());
-                    //CommonDebugFunction::savePointCloudToFile(ob, desination_goal, *cloud_filtered, pointsPathToDest, refined_currentDetectedObject, "newObjectAndPath");
-                }
-                refined_lastDetectedObject = refined_currentDetectedObject; */
-
-        // auto path = findPathWithVectorCalculation({100, 50}, refinedobjects);
-
-        // CommonDebugFunction::visualizeOccupancyGridAndPath(occupancyGrid, path, "objectAndPath");
-
-        // updateGridWithClusters(cluster_indices, cloud_filtered);
     }
     else
     {
         std::cout << "Filtered point ended emptying the objects." << std::endl;
     }
+    _mutexIsParsingData.unlock();
 }
 
+
+// we set the robot position to the center of our perception map because lidar data have as center the robot
+// If we want to manage fixed object / boundary  that the lidar does not see, the good approach is to add these object with the shifter
+// instead of shifting every single detected point at each detection
+// the problem is we have to also shift the destination to our perception
+std::pair<RobotSpatialInfos, Eigen::Vector3f> Mapper::getCenteredRobotAndGoal()
+{
+    auto robot = SingletonGameState::getInstance().getRobotInfos();
+    auto dest = SingletonGameState::getInstance().getDestinationGoal();
+    auto shiftDestAbsolutToCenterOfMap = (dest - robot.center);
+    robot.center = _mapCenterShifter; // set to center of our c++ map
+    dest = robot.center + shiftDestAbsolutToCenterOfMap; // we set the dest goal from a percption from the center
+    return std::make_pair(robot, dest);
+}
+
+/* 
 bool Mapper::isCellBlockedWithRobotSize(int x, int y,
-                                        const std::vector<std::vector<int>> &grid)
+    const std::vector<std::vector<int>>& grid)
 {
     auto robotCellsSize = _robotInfos.getRobotSizeInGridCells(_map.gridResolution);
     int rows = grid.size();
@@ -303,56 +302,56 @@ bool Mapper::isCellBlockedWithRobotSize(int x, int y,
 }
 
 std::vector<std::pair<int, int>> Mapper::findPath(
-    const std::vector<std::vector<int>> &grid,
+    const std::vector<std::vector<int>>& grid,
     int startX, int startY, int destX, int destY)
 {
     int rows = grid.size();
     int cols = grid[0].size();
 
     auto heuristic = [](int x1, int y1, int x2, int y2)
-    {
-        return std::hypot(x2 - x1, y2 - y1);
-    };
+        {
+            return std::hypot(x2 - x1, y2 - y1);
+        };
     std::cout << TAG << "1" << std::endl;
 
     // Priority queue for open list
-    std::priority_queue<Node *, std::vector<Node *>, CompareNode> openList;
-    std::unordered_map<int, Node *> allNodes;
+    std::priority_queue<Node*, std::vector<Node*>, CompareNode> openList;
+    std::unordered_map<int, Node*> allNodes;
     auto hash = [cols](int x, int y)
-    { return x * cols + y; };
+        { return x * cols + y; };
 
     // Start and destination nodes
-    Node *startNode = new Node(startX, startY, 0, heuristic(startX, startY, destX, destY));
+    Node* startNode = new Node(startX, startY, 0, heuristic(startX, startY, destX, destY));
     openList.push(startNode);
     allNodes[hash(startX, startY)] = startNode;
 
     std::cout << TAG << "2" << std::endl;
-    std::vector<std::pair<int, int>> directions{{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    std::vector<std::pair<int, int>> directions{ {0, 1}, {1, 0}, {0, -1}, {-1, 0} };
 
     while (!openList.empty())
     {
-        Node *current = openList.top();
+        Node* current = openList.top();
         openList.pop();
 
         // Check if we reached the destination
         if (current->x == destX && current->y == destY)
         {
             std::vector<std::pair<int, int>> path;
-            for (Node *node = current; node; node = node->parent)
+            for (Node* node = current; node; node = node->parent)
             {
                 path.emplace_back(node->x, node->y);
             }
             std::reverse(path.begin(), path.end());
 
             // Cleanup all nodes
-            for (auto &[_, node] : allNodes)
+            for (auto& [_, node] : allNodes)
                 delete node;
             return path;
         }
         std::cout << TAG << "3" << std::endl;
 
         // Explore neighbors
-        for (const auto &[dx, dy] : directions)
+        for (const auto& [dx, dy] : directions)
         {
             int nx = current->x + dx, ny = current->y + dy;
 
@@ -366,7 +365,7 @@ std::vector<std::pair<int, int>> Mapper::findPath(
 
                 if (allNodes.find(nodeHash) == allNodes.end() || newCost < allNodes[nodeHash]->cost)
                 {
-                    Node *neighbor = new Node(nx, ny, newCost, heuristic(nx, ny, destX, destY), current);
+                    Node* neighbor = new Node(nx, ny, newCost, heuristic(nx, ny, destX, destY), current);
                     openList.push(neighbor);
                     allNodes[nodeHash] = neighbor;
                 }
@@ -377,13 +376,13 @@ std::vector<std::pair<int, int>> Mapper::findPath(
     std::cout << TAG << "4" << std::endl;
 
     // Cleanup all nodes if no path is found
-    for (auto &[_, node] : allNodes)
+    for (auto& [_, node] : allNodes)
         delete node;
     return {}; // Return empty path if no route to destination
-}
+} */
 
 std::vector<Object3D> Mapper::refineMapToObjects(
-    const std::vector<std::vector<int>> &grid)
+    const std::vector<std::vector<int>>& grid)
 {
     int rows = grid.size();
     int cols = grid[0].size();
@@ -394,11 +393,11 @@ std::vector<Object3D> Mapper::refineMapToObjects(
     std::vector<Object3D> objects;
 
     auto isValid = [&](int x, int y)
-    {
-        return x >= 0 && x < rows && y >= 0 && y < cols && grid[x][y] > 0 && !visited[x][y];
-    };
+        {
+            return x >= 0 && x < rows && y >= 0 && y < cols && grid[x][y] > 0 && !visited[x][y];
+        };
 
-    std::vector<std::pair<int, int>> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    std::vector<std::pair<int, int>> directions = { {0, 1}, {1, 0}, {0, -1}, {-1, 0} };
 
     for (int x = 0; x < rows; ++x)
     {
@@ -408,7 +407,7 @@ std::vector<Object3D> Mapper::refineMapToObjects(
             {
                 // Start a BFS to find all connected cells of the current cluster
                 std::queue<std::pair<int, int>> q;
-                q.push({x, y});
+                q.push({ x, y });
                 visited[x][y] = true;
 
                 std::vector<std::pair<int, int>> clusterCells;
@@ -417,22 +416,22 @@ std::vector<Object3D> Mapper::refineMapToObjects(
                 {
                     auto [cx, cy] = q.front();
                     q.pop();
-                    clusterCells.push_back({cx, cy});
+                    clusterCells.push_back({ cx, cy });
 
-                    for (const auto &[dx, dy] : directions)
+                    for (const auto& [dx, dy] : directions)
                     {
                         int nx = cx + dx, ny = cy + dy;
                         if (isValid(nx, ny))
                         {
                             visited[nx][ny] = true;
-                            q.push({nx, ny});
+                            q.push({ nx, ny });
                         }
                     }
                 }
 
                 // Calculate object properties from the cluster
                 int minX = rows, maxX = 0, minY = cols, maxY = 0;
-                for (const auto &[cx, cy] : clusterCells)
+                for (const auto& [cx, cy] : clusterCells)
                 {
                     minX = std::min(minX, cx);
                     maxX = std::max(maxX, cx);
@@ -448,7 +447,7 @@ std::vector<Object3D> Mapper::refineMapToObjects(
                 objects.push_back(Object3D{
                     Eigen::Vector3f(centerX, centerY, 0.0f),            // Assuming 2D map; z = 0
                     Eigen::Vector3f(length, width, _map.gridResolution) // Assuming uniform grid resolution for height
-                });
+                    });
             }
         }
     }
@@ -457,13 +456,13 @@ std::vector<Object3D> Mapper::refineMapToObjects(
 }
 
 // deprecated, do not use
-bool Mapper::isInCollision(const Eigen::Vector3f &position, const Eigen::Vector3f &size, const Eigen::Vector3f &point)
+bool Mapper::isInCollision(const Eigen::Vector3f& position, const Eigen::Vector3f& size, const Eigen::Vector3f& point)
 {
     Eigen::Vector3f halfSize = size * 0.5f;
     return (point.x() >= (position.x() - halfSize.x()) &&
-            point.x() <= (position.x() + halfSize.x()) &&
-            point.y() >= (position.y() - halfSize.y()) &&
-            point.y() <= (position.y() + halfSize.y()));
+        point.x() <= (position.x() + halfSize.x()) &&
+        point.y() >= (position.y() - halfSize.y()) &&
+        point.y() <= (position.y() + halfSize.y()));
 }
 
 // check if there is a collision from the moving object (robot) as start point
@@ -471,9 +470,9 @@ bool Mapper::isInCollision(const Eigen::Vector3f &position, const Eigen::Vector3
 // uses the slab method to determine if the line segment intersects the AABB (Axis-Aligned Bounding Box).
 // AABB only work with rectangle that are aligned with the x and Y axis !!!
 // If you want to check collision for non-aligned ovject, use SAT
-bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
-                                const Object3D &immobileObj,
-                                const Eigen::Vector3f &destination)
+bool Mapper::lineIntersectsAABB(const Object3D& movingObj,
+    const Object3D& immobileObj,
+    const Eigen::Vector3f& destination)
 {
     // we increase the immobile object by the mooving on (half size) to take in account it's size
     // like the robot size, and only use a vector as calculation
@@ -513,7 +512,7 @@ bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
     float tFar = std::min(std::min(t2.x(), t2.y()), t2.z());
     if (AABB_LOG_DEBUG)
         std::cout << "DEBUG tNear:[" << tNear << "], tFar:[" << tFar << "]" << std::endl
-                  << std::endl;
+        << std::endl;
 
     return (tNear <= tFar && tFar >= 0);
 }
@@ -525,9 +524,9 @@ bool Mapper::lineIntersectsAABB(const Object3D &movingObj,
 /// @param collidingObject
 /// @param destination
 /// @return
-Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpatialInfos &robot,
-                                                                  const Object3D &collidingObject,
-                                                                  const Eigen::Vector3f &destination)
+Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpatialInfos& robot,
+    const Object3D& collidingObject,
+    const Eigen::Vector3f& destination)
 {
     // Calculate corners of the colliding object (with robot size margin)
     Eigen::Vector3f halfSizeObj = collidingObject.size * 0.5f;
@@ -538,13 +537,13 @@ Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpa
         collidingObject.center + Eigen::Vector3f(expandedHalfSize.x(), expandedHalfSize.y(), 0),
         collidingObject.center + Eigen::Vector3f(expandedHalfSize.x(), -expandedHalfSize.y(), 0),
         collidingObject.center + Eigen::Vector3f(-expandedHalfSize.x(), expandedHalfSize.y(), 0),
-        collidingObject.center + Eigen::Vector3f(-expandedHalfSize.x(), -expandedHalfSize.y(), 0)};
+        collidingObject.center + Eigen::Vector3f(-expandedHalfSize.x(), -expandedHalfSize.y(), 0) };
 
     // Find the two closest corners to the robot
-    std::sort(corners.begin(), corners.end(), [&robot](const Eigen::Vector3f &a, const Eigen::Vector3f &b)
-              { return (a - robot.center).norm() < (b - robot.center).norm(); });
+    std::sort(corners.begin(), corners.end(), [&robot](const Eigen::Vector3f& a, const Eigen::Vector3f& b)
+        { return (a - robot.center).norm() < (b - robot.center).norm(); });
 
-    for (const auto &cor : corners)
+    for (const auto& cor : corners)
     {
         std::cout << "Closest corner:" << cor[0] << " y:" << cor[1] << " z:" << cor[2] << std::endl;
     }
@@ -561,8 +560,8 @@ Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpa
 
         // Select the closest corner to the destination from the two nearest corners
         bestCorner = (distA < distB)
-                         ? (distA < distC ? corners[0] : corners[2])
-                         : (distB < distC ? corners[1] : corners[2]);
+            ? (distA < distC ? corners[0] : corners[2])
+            : (distB < distC ? corners[1] : corners[2]);
     }
     else // 2 corners
     {
@@ -578,10 +577,10 @@ Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpa
 /// @param destination
 /// @param objects
 /// @return
-void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &robot,
-                                                      const Eigen::Vector3f &destination,
-                                                      const std::vector<Object3D> &objects,
-                                                      std::vector<Eigen::Vector3f> &pathToFill)
+void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos& robot,
+    const Eigen::Vector3f& destination,
+    const std::vector<Object3D>& objects,
+    std::vector<Eigen::Vector3f>& pathToFill)
 {
     if (pathToFill.size() >= MAPPER_MAX_DEPTH_PATH_NUMBER_POINT)
     {
@@ -590,7 +589,7 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
     }
 
     std::vector<Object3D> filteredObjects;
-    for (const auto &obj : objects)
+    for (const auto& obj : objects)
     {
         if ((obj.center - robot.center).dot(destination - robot.center) > 0)
         {
@@ -604,7 +603,7 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
     Object3D closestObject;
     bool foundCollision = false;
 
-    for (const auto &obj : filteredObjects)
+    for (const auto& obj : filteredObjects)
     {
         if (lineIntersectsAABB(robot, obj, destination))
         {
@@ -624,9 +623,9 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
         auto nextPosition = Mapper::getCollidingNextPositionCloserBorderLogic(robot, closestObject, destination);
 
         std::cout << "From ob:" << static_cast<Object3D>(robot)
-                  << ", to destination x:" << destination[0] << " y:" << destination[1] << " z:" << destination[2] << std::endl;
+            << ", to destination x:" << destination[0] << " y:" << destination[1] << " z:" << destination[2] << std::endl;
         std::cout << "closestObject:" << static_cast<Object3D>(closestObject)
-                  << ", nextPosition x:" << nextPosition[0] << " y:" << nextPosition[1] << " z:" << nextPosition[2] << std::endl;
+            << ", nextPosition x:" << nextPosition[0] << " y:" << nextPosition[1] << " z:" << nextPosition[2] << std::endl;
 
         RobotSpatialInfos updatedRobot = RobotSpatialInfos(robot);
         updatedRobot.center = nextPosition;
@@ -639,7 +638,7 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
         else
         {
             std::cerr << TAG << "ERROR: PATHFINDING entered infinite loop. UpdatedRobot:" << static_cast<Object3D>(updatedRobot)
-                      << ", robot:" << static_cast<Object3D>(robot) << std::endl;
+                << ", robot:" << static_cast<Object3D>(robot) << std::endl;
         }
     }
     else
@@ -655,9 +654,9 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &r
 /// @param refined_lastDetectedObject
 /// @param robotMovement
 void Mapper::linkDetectedObjects(
-    std::vector<Object3D> &refined_currentDetectedObject, // ref as we update it
-    const std::vector<Object3D> &refined_lastDetectedObject,
-    const Eigen::Vector3f &robotMovement)
+    std::vector<Object3D>& refined_currentDetectedObject, // ref as we update it
+    const std::vector<Object3D>& refined_lastDetectedObject,
+    const Eigen::Vector3f& robotMovement)
 {
     // Maximum allowable distance to consider as the same object, in the future may be dependent of the robot movement
     const float maxDistanceThreshold = MAPPER_MARGING_DETECTION_THRESHOLD_MERGER;
@@ -693,4 +692,16 @@ void Mapper::linkDetectedObjects(
             refined_currentDetectedObject[i].id = getObjectNewId();
         }
     }
+}
+
+// Getter for refinedCurrentDetectedObject
+std::vector<Object3D> Mapper::getRefinedCurrentDetectedObject() {
+    std::lock_guard<std::mutex> lock(_mutexDetectedObject);
+    return _refinedCurrentDetectedObject;
+}
+
+// Getter for refinedLastDetectedObject
+std::vector<Object3D> Mapper::getRefinedLastDetectedObject() {
+    std::lock_guard<std::mutex> lock(_mutexDetectedObject);
+    return _refinedLastDetectedObject;
 }

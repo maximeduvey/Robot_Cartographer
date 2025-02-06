@@ -58,6 +58,21 @@ void addData()
     map.addDataToParse(field);
 }
 
+void updateVisual()
+{
+    (&map)->_mutexIsParsingData.lock();
+    auto rob_and_dest = map.getCenteredRobotAndGoal();
+    auto pathfinding = map.getCurrentPathfindingToDest();
+
+    CommonDebugFunction::savePointCloudToFile(rob_and_dest.first, rob_and_dest.second,
+        *map._parsingDataPointCloud, pathfinding,
+        map.getRefinedCurrentDetectedObject(),
+        "objectAndPath", -map._mapCenterShifter);
+    (&map)->_mutexIsParsingData.unlock();
+    SingletonVisualizerManager::getInstance().spinOnce(100);
+    
+}
+
 int main()
 {
     std::cout << TAG << std::endl;
@@ -81,7 +96,7 @@ int main()
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     while (!SingletonVisualizerManager::getInstance().wasStopped())
     {
-        SingletonVisualizerManager::getInstance().spinOnce(100);
+        updateVisual();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     return 0;

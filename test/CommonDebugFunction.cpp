@@ -12,18 +12,18 @@ static int unic_id = 3000;
 
 void CommonDebugFunction::display3dObject(std::vector<Object3D> objects)
 {
-    for (const auto &obj : objects)
+    for (const auto& obj : objects)
     {
         std::cout << "Object Center: (" << obj.center.x() << ", " << obj.center.y() << ", " << obj.center.z() << ")\n";
         std::cout << "Object Size: (Length: " << obj.size.x()
-                  << ", Width: " << obj.size.y()
-                  << ", Height: " << obj.size.z() << ")\n";
+            << ", Width: " << obj.size.y()
+            << ", Height: " << obj.size.z() << ")\n";
     }
 }
 
 void CommonDebugFunction::savePointCloudToFile(
-    const pcl::PointCloud<pcl::PointXYZ> &cloud,
-    const std::string &filename)
+    const pcl::PointCloud<pcl::PointXYZ>& cloud,
+    const std::string& filename)
 {
     if (cloud.empty())
     {
@@ -40,7 +40,7 @@ void CommonDebugFunction::savePointCloudToFile(
 
     std::cout << "Saving " << cloud.size() << " points to " << filename << std::endl;
 
-    for (const auto &point : cloud)
+    for (const auto& point : cloud)
     {
         outFile << point.x << " " << point.y << " " << point.z << "\n";
     }
@@ -53,12 +53,12 @@ void CommonDebugFunction::savePointCloudToFile(
     std::cout << "Point cloud saved to " << filename << std::endl;
 }
 
-void CommonDebugFunction::savePathToPointCloud(const std::vector<std::pair<int, int>> &path, const std::string &filename)
+void CommonDebugFunction::savePathToPointCloud(const std::vector<std::pair<int, int>>& path, const std::string& filename)
 {
     // Create a PCL PointCloud object
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 
-    for (const auto &point : path)
+    for (const auto& point : path)
     {
         cloud->points.emplace_back(point.first, point.second, 0);
     }
@@ -82,9 +82,9 @@ void CommonDebugFunction::savePathToPointCloud(const std::vector<std::pair<int, 
 
 // Visualize occupancy grid and path in PCL Viewer
 void CommonDebugFunction::visualizeOccupancyGridAndPath(
-    const std::vector<std::vector<int>> &occupancyGrid,
-    const std::vector<std::pair<int, int>> &path,
-    const std::string &filename)
+    const std::vector<std::vector<int>>& occupancyGrid,
+    const std::vector<std::pair<int, int>>& path,
+    const std::string& filename)
 {
     // Create PointCloud for occupancy grid
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr objectCloud(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -100,7 +100,7 @@ void CommonDebugFunction::visualizeOccupancyGridAndPath(
         }
     }
 
-    for (const auto &point : path)
+    for (const auto& point : path)
     {
         objectCloud->points.emplace_back(point.first, point.second, 0, 0, 255, 0);
     }
@@ -121,8 +121,8 @@ void CommonDebugFunction::visualizeOccupancyGridAndPath(
 }
 
 void CommonDebugFunction::savePointsToFile(
-    const std::vector<Point> &points,
-    const std::string &filename)
+    const std::vector<Point>& points,
+    const std::string& filename)
 {
     if (points.empty())
     {
@@ -137,9 +137,9 @@ void CommonDebugFunction::savePointsToFile(
         return;
     }
 
-   // std::cout << "Saving " << points.size() << " points to " << filename << std::endl;
+    // std::cout << "Saving " << points.size() << " points to " << filename << std::endl;
 
-    for (const auto &point : points)
+    for (const auto& point : points)
     {
         outFile << point.pos.x() << " " << point.pos.y() << "\n";
     }
@@ -149,10 +149,10 @@ void CommonDebugFunction::savePointsToFile(
 }
 
 void CommonDebugFunction::saveOccupancyGridToFile(
-    const std::vector<std::vector<std::pair<bool, int>>> &map,
-    const std::string &filename,
-    const Eigen::Vector3f &robotStart,
-    const Eigen::Vector3f &goalPos)
+    const std::vector<std::vector<std::pair<bool, int>>>& map,
+    const std::string& filename,
+    const Eigen::Vector3f& robotStart,
+    const Eigen::Vector3f& goalPos)
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
     std::ofstream outFile(filename);
@@ -164,25 +164,25 @@ void CommonDebugFunction::saveOccupancyGridToFile(
 
     // std::cout << TAG << " column:" << map.size() << ", row:" << map[0].size() << std::endl;
     int y = 0;
-for (const auto &row : map)
-{
-    int x = 0;
-    for (const auto &cell : row)
+    for (const auto& row : map)
     {
-        if (cell.second > 0)
-            cloud->points.emplace_back(static_cast<float>(x), static_cast<float>(y), 0.0f);
-        outFile << (cell.second > 0 ? "[x]" : "[ ]") << " "; // Occupied or Free
-        ++x;
+        int x = 0;
+        for (const auto& cell : row)
+        {
+            if (cell.second > 0)
+                cloud->points.emplace_back(static_cast<float>(x), static_cast<float>(y), 0.0f);
+            outFile << (cell.second > 0 ? "[x]" : "[ ]") << " "; // Occupied or Free
+            ++x;
+        }
+        ++y;
+        outFile << "\n";
     }
-    ++y;
-    outFile << "\n";
-}
 
 
     outFile.close();
 
-    CommonDebugFunction::addObjectToCloud({robotStart}, cloud, 255, 0, 0);
-    CommonDebugFunction::addObjectToCloud({goalPos}, cloud, 0, 0, 255);
+    CommonDebugFunction::addObjectToCloud({ robotStart }, cloud, 255, 0, 0);
+    CommonDebugFunction::addObjectToCloud({ goalPos }, cloud, 0, 0, 255);
     cloud->width = cloud->points.size();
     cloud->height = 1;
     cloud->is_dense = true;
@@ -200,10 +200,10 @@ for (const auto &row : map)
 };
 
 void CommonDebugFunction::saveOccupancyGridToFile(
-    const std::vector<std::vector<int>> &grid,
-    const std::string &filename,
-    const Eigen::Vector3f &robotStart,
-    const Eigen::Vector3f &goalPos)
+    const std::vector<std::vector<int>>& grid,
+    const std::string& filename,
+    const Eigen::Vector3f& robotStart,
+    const Eigen::Vector3f& goalPos)
 {
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -220,10 +220,10 @@ void CommonDebugFunction::saveOccupancyGridToFile(
         return;
     }
     int y = 0;
-    for (const auto &row : grid)
+    for (const auto& row : grid)
     {
         int x = 0;
-        for (const auto &cell : row)
+        for (const auto& cell : row)
         {
             if (cell > 0)
                 cloud->points.emplace_back(x, y, 0, 255, 255, 255);
@@ -236,8 +236,8 @@ void CommonDebugFunction::saveOccupancyGridToFile(
 
     outFile.close();
 
-    CommonDebugFunction::addObjectToCloud({robotStart}, cloud, 255, 0, 0);
-    CommonDebugFunction::addObjectToCloud({goalPos}, cloud, 0, 0, 255);
+    CommonDebugFunction::addObjectToCloud({ robotStart }, cloud, 255, 0, 0);
+    CommonDebugFunction::addObjectToCloud({ goalPos }, cloud, 0, 0, 255);
     cloud->width = cloud->points.size();
     cloud->height = 1;
     cloud->is_dense = true;
@@ -256,8 +256,9 @@ void CommonDebugFunction::saveOccupancyGridToFile(
     }
 }
 
-pcl::PointXYZRGB CommonDebugFunction::eigneVecToPoint( const Eigen::Vector3f &point,  uint8_t r, uint8_t g, uint8_t b)
+pcl::PointXYZRGB CommonDebugFunction::eigneVecToPoint(const Eigen::Vector3f& point, uint8_t r, uint8_t g, uint8_t b)
 {
+    std::cout << TAG << std::endl;
     pcl::PointXYZRGB pclPoint;
     pclPoint.x = point.x();
     pclPoint.y = point.y();
@@ -268,28 +269,29 @@ pcl::PointXYZRGB CommonDebugFunction::eigneVecToPoint( const Eigen::Vector3f &po
     return pclPoint;
 }
 
-void CommonDebugFunction::addPointToCloud(
+/* void CommonDebugFunction::addPointToCloud(
     const Eigen::Vector3f &point,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
     uint8_t r, uint8_t g, uint8_t b)
 {
     cloud->points.push_back(CommonDebugFunction::eigneVecToPoint(point, r, g, b));
-}
+} */
 
 void CommonDebugFunction::addPointsToCloud(
-    const std::vector<Eigen::Vector3f> &pathPoints,
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-    uint8_t r, uint8_t g, uint8_t b)
+    const std::vector<Eigen::Vector3f>& pathPoints,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
+    uint8_t r, uint8_t g, uint8_t b,
+    const Eigen::Vector3f shifter/*  = {0.0f, 0.0f, 0.0f} */)
 {
-    std::cout << "Path containing :" << pathPoints.size() << std::endl;
+    std::cout << TAG << "Path containing :" << pathPoints.size() << std::endl;
     static int nbr = 10;
-    for (const auto &point : pathPoints)
+    for (const auto& point : pathPoints)
     {
-        std::string str = std::string( "[x:" + std::to_string(point[0]) + ",y:" + std::to_string(point[1]) + ",z:" + std::to_string(point[2]) + "]");
+        std::string str = std::string("[x:" + std::to_string(point[0]) + ",y:" + std::to_string(point[1]) + ",z:" + std::to_string(point[2]) + "]");
         std::cout << TAG << "Path " << str << std::endl;
-        auto pclpoint = CommonDebugFunction::eigneVecToPoint(point, r,g,b);
+        auto pclpoint = CommonDebugFunction::eigneVecToPoint((point + shifter), r, g, b);
         cloud->points.push_back(pclpoint);
-        SingletonVisualizerManager::getInstance().addTextToPoint(pclpoint, str, r,g,b, ++nbr);
+        SingletonVisualizerManager::getInstance().addTextToPoint(pclpoint, str, r, g, b, ++nbr);
         //CommonDebugFunction::addPointToCloud(point, cloud, r, g, b);
     }
 }
@@ -301,11 +303,12 @@ void CommonDebugFunction::addPointsToCloud(
 /// @param g 
 /// @param b 
 pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
-    const Object3D &ob,
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
+    const Object3D& ob,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
     uint8_t r, uint8_t g, uint8_t b,
     const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
+    //std::cout << TAG << std::endl;
     Object3D object(ob);
     object.center = object.center + shifter;
     // Represent the object by its center position
@@ -331,7 +334,7 @@ pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
         object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), halfSize.z()),
     };
 
-    for (const auto &corner : corners)
+    for (const auto& corner : corners)
     {
         pcl::PointXYZRGB cornerPoint;
         cornerPoint.x = corner.x();
@@ -346,22 +349,25 @@ pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
 }
 
 void CommonDebugFunction::addObjectsToCloud(
-    const std::vector<Object3D> &detectedObjects,
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-    uint8_t r, uint8_t g, uint8_t b)
+    const std::vector<Object3D>& detectedObjects,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
+    uint8_t r, uint8_t g, uint8_t b,
+    const Eigen::Vector3f shifter/*  = {0.0f, 0.0f, 0.0f }*/)
 {
+    std::cout << TAG << std::endl;
     // Add detected objects with red color
-    for (const auto &object : detectedObjects)
+    for (const auto& object : detectedObjects)
     {
-        auto pt = CommonDebugFunction::addObjectToCloud(object, cloud, r, g, b);
+        auto pt = CommonDebugFunction::addObjectToCloud(object, cloud, r, g, b, shifter);
         SingletonVisualizerManager::getInstance().addTextToPoint(pt, std::to_string(object.id), RGB_YELLOW, ++unic_id);
     }
 }
 
 void CommonDebugFunction::writeCloudWriter(
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-    const std::string &filename)
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
+    const std::string& filename)
 {
+    std::cout << TAG << std::endl;
     // Set cloud metadata
     cloud->width = cloud->points.size();
     cloud->height = 1;
@@ -379,12 +385,13 @@ void CommonDebugFunction::writeCloudWriter(
     }
 }
 
-void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ> &inputCloud,
-                                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr &outputCloud,
-                                           uint8_t r, uint8_t g, uint8_t b,
-                                           const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
+void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ>& inputCloud,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& outputCloud,
+    uint8_t r, uint8_t g, uint8_t b,
+    const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
-    for (const auto &point : inputCloud.points)
+    std::cout << TAG << std::endl;
+    for (const auto& point : inputCloud.points)
     {
         pcl::PointXYZRGB coloredPoint;
         coloredPoint.x = point.x + shifter.x();
@@ -400,9 +407,9 @@ void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ> 
 
 // Function to save path and detected objects to a PCD file
 void CommonDebugFunction::savePointCloudToFile(
-    const std::vector<Eigen::Vector3f> &pathPoints,
-    const std::vector<Object3D> &detectedObjects,
-    const std::string &filename)
+    const std::vector<Eigen::Vector3f>& pathPoints,
+    const std::vector<Object3D>& detectedObjects,
+    const std::string& filename)
 {
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -413,10 +420,10 @@ void CommonDebugFunction::savePointCloudToFile(
 }
 
 void CommonDebugFunction::savePointCloudToFile(
-    const pcl::PointCloud<pcl::PointXYZ> &cloud2,
-    const std::vector<Eigen::Vector3f> &pathPoints,
-    const std::vector<Object3D> &detectedObjects,
-    const std::string &filename)
+    const pcl::PointCloud<pcl::PointXYZ>& cloud2,
+    const std::vector<Eigen::Vector3f>& pathPoints,
+    const std::vector<Object3D>& detectedObjects,
+    const std::string& filename)
 {
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -428,11 +435,11 @@ void CommonDebugFunction::savePointCloudToFile(
 }
 
 void CommonDebugFunction::savePointCloudToFile(
-    const Object3D &robot,
-    const pcl::PointCloud<pcl::PointXYZ> &cloud2,
-    const std::vector<Eigen::Vector3f> &pathPoints,
-    const std::vector<Object3D> &detectedObjects,
-    const std::string &filename)
+    const Object3D& robot,
+    const pcl::PointCloud<pcl::PointXYZ>& cloud2,
+    const std::vector<Eigen::Vector3f>& pathPoints,
+    const std::vector<Object3D>& detectedObjects,
+    const std::string& filename)
 {
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -445,12 +452,12 @@ void CommonDebugFunction::savePointCloudToFile(
 }
 
 void CommonDebugFunction::savePointCloudToFile(
-    const Object3D &robot,
-    const Eigen::Vector3f &destination,
-    const pcl::PointCloud<pcl::PointXYZ> &cloud2,
-    const std::vector<Eigen::Vector3f> &pathPoints,
-    const std::vector<Object3D> &detectedObjects,
-    const std::string &filename,
+    const Object3D& robot,
+    const Eigen::Vector3f& destination,
+    const pcl::PointCloud<pcl::PointXYZ>& cloud2,
+    const std::vector<Eigen::Vector3f>& pathPoints,
+    const std::vector<Object3D>& detectedObjects,
+    const std::string& filename,
     const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
     //std::cout << TAG << "A" << std::endl;
@@ -459,17 +466,18 @@ void CommonDebugFunction::savePointCloudToFile(
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    auto start =CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_ORANGE);
+    auto start = CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_ORANGE, shifter);
     SingletonVisualizerManager::getInstance().addTextToPoint(start, "START", RGB_YELLOW, ++unic_id);
-    
-    auto destPoint = CommonDebugFunction::eigneVecToPoint(destination, RGB_YELLOW);
+
+    auto destPoint = CommonDebugFunction::eigneVecToPoint((destination + shifter), RGB_YELLOW);
     cloud->points.push_back(destPoint);
     SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
 
-    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE, shifter);
-    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
-    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
-    
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
+    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN, shifter);
+    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED, shifter);
+
+
     //CommonDebugFunction::writeCloudWriter(cloud, filename);
     SingletonVisualizerManager::getInstance().updatePointCloud(cloud);
 }

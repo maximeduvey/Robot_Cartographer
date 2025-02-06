@@ -33,13 +33,21 @@ public:
   Eigen::Vector3f size;   // Size of the object (length, width, height)
   int id;
 
-  Object3D() : center({0,0,0}), size(0,0,0), id(0) {}
-  Object3D(const Eigen::Vector3f &pos) : center(pos), size({0,0,0}), id(0) {}
-  Object3D(const Eigen::Vector3f &pos, const Eigen::Vector3f &s) : center(pos), size(s), id(0) {}
-  Object3D(const Object3D &copy) : center(copy.center), size(copy.size), id(copy.id) {}
-  friend std::ostream &operator<<(std::ostream &os, const Object3D &info) {
-        os  << "id:" << info.id << ", center x:" << info.center.x() << ", y:" << info.center.y() << ", z:" << info.center.z()
-       << ", size x:" << info.size.x() << ", y:" << info.size.y() << ", z:" << info.size.z();
+  Object3D() : center({ 0,0,0 }), size(0, 0, 0), id(0) {}
+  Object3D(const Eigen::Vector3f& pos) : center(pos), size({ 0,0,0 }), id(0) {}
+  Object3D(const Eigen::Vector3f& pos, const Eigen::Vector3f& s) : center(pos), size(s), id(0) {}
+  Object3D(const Object3D& copy) : center(copy.center), size(copy.size), id(copy.id) {}
+  Object3D& operator=(const Object3D& other) {
+    if (this != &other) {
+      center = other.center;
+      size = other.size;
+      id = other.id;
+    }
+    return *this;
+  }
+  friend std::ostream& operator<<(std::ostream& os, const Object3D& info) {
+    os << "id:" << info.id << ", center x:" << info.center.x() << ", y:" << info.center.y() << ", z:" << info.center.z()
+      << ", size x:" << info.size.x() << ", y:" << info.size.y() << ", z:" << info.size.z();
     return os;
   }
 };
@@ -48,7 +56,7 @@ public:
 /// for example the lidar detect a point "far away" set it's pos and distance relative to the robot/lidar
 struct Point
 {
-  Eigen::Vector3f pos{0.0f, 0.0f, 0.0f};
+  Eigen::Vector3f pos{ 0.0f, 0.0f, 0.0f };
   uint16_t distance = 0;
 };
 

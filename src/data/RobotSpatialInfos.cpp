@@ -1,20 +1,20 @@
 
 #include <RobotSpatialInfos.h>
 
-RobotSpatialInfos::RobotSpatialInfos() : Object3D({0.0f, 0.0f, 0.0f}, {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT})
+RobotSpatialInfos::RobotSpatialInfos() : Object3D({ 0.0f, 0.0f, 0.0f }, { PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT })
 {
     _previousRobotPositionTimestamp = std::time(nullptr);
-    std::cout << "Default Constructor: " << *this <<std::endl;
+    std::cout << "Default Constructor: " << *this << std::endl;
 }
 
 RobotSpatialInfos::RobotSpatialInfos(
-      const Eigen::Vector3f &robotStartingPosition,
-      const Eigen::Vector3f &obsize /* = {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT} */
-      ) : Object3D(robotStartingPosition, size),
-       _robotStartingPosition(robotStartingPosition), previousRobotPosition(robotStartingPosition)
+    const Eigen::Vector3f& robotStartingPosition,
+    const Eigen::Vector3f& obsize /* = {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH, PAMI_ROBOT_SIZE_HEIGHT} */
+) : Object3D(robotStartingPosition, size),
+_robotStartingPosition(robotStartingPosition), previousRobotPosition(robotStartingPosition)
 {
     _previousRobotPositionTimestamp = std::time(nullptr);
-    std::cout << "Constructor: " << *this <<std::endl;
+    std::cout << "Constructor: " << *this << std::endl;
 }
 
 RobotSpatialInfos::~RobotSpatialInfos()
@@ -26,35 +26,45 @@ std::pair<int, int> RobotSpatialInfos::getRobotSizeInGridCells(float gridResolut
     std::lock_guard<std::mutex> lock(_mutexDataAccessor);
     int robotLengthCells = static_cast<int>(std::ceil(size.x() / gridResolution));
     int robotWidthCells = static_cast<int>(std::ceil(size.y() / gridResolution));
-    return {robotLengthCells, robotWidthCells};
+    return { robotLengthCells, robotWidthCells };
 }
 
 // Equality operator for comparison
-bool RobotSpatialInfos::operator==(const RobotSpatialInfos &other)
+bool RobotSpatialInfos::operator==(const RobotSpatialInfos& other)
 {
     std::lock_guard<std::mutex> lock(_mutexDataAccessor);
     return center == other.center &&
-           _robotStartingPosition == other._robotStartingPosition &&
-           _currentRobotAngle == other._currentRobotAngle &&
-           size == other.size;
+        _robotStartingPosition == other._robotStartingPosition &&
+        _currentRobotAngle == other._currentRobotAngle &&
+        size == other.size;
 }
 
+RobotSpatialInfos& RobotSpatialInfos::operator=(const RobotSpatialInfos& other) {
+    if (this != &other) {
+        Object3D::operator=(other); // Call the base class assignment operator
+        _robotStartingPosition = other._robotStartingPosition;
+        _currentRobotAngle = other._currentRobotAngle;
+    }
+    return *this;
+}
+
+
 // Custom copy constructor
-RobotSpatialInfos::RobotSpatialInfos(const RobotSpatialInfos &other)
+RobotSpatialInfos::RobotSpatialInfos(const RobotSpatialInfos& other)
     : Object3D(other),
-      previousRobotPosition(other.previousRobotPosition),
-      _previousRobotPositionTimestamp(other._previousRobotPositionTimestamp)
+    previousRobotPosition(other.previousRobotPosition),
+    _previousRobotPositionTimestamp(other._previousRobotPositionTimestamp)
 {
-    std::cout << "copy constructor: " << *this << ", other:" << other<<std::endl;
+    std::cout << "copy constructor: " << *this << ", other:" << other << std::endl;
 }
 
 // Print operator for debugging
-std::ostream &operator<<(std::ostream &os, const RobotSpatialInfos &info)
+std::ostream& operator<<(std::ostream& os, const RobotSpatialInfos& info)
 {
-   // std::lock_guard<std::mutex> lock(_mutexDataAccessor);
+    // std::lock_guard<std::mutex> lock(_mutexDataAccessor);
     os << static_cast<Object3D>(info)
-       << ", Starting Position: (x:" << info._robotStartingPosition.x() << ", y:" << info._robotStartingPosition.y() << ", z:" << info._robotStartingPosition.z() << ")"
-       << ", Angle: " << info._currentRobotAngle;
+        << ", Starting Position: (x:" << info._robotStartingPosition.x() << ", y:" << info._robotStartingPosition.y() << ", z:" << info._robotStartingPosition.z() << ")"
+        << ", Angle: " << info._currentRobotAngle;
     return os;
 }
 

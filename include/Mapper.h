@@ -98,8 +98,8 @@ public:
     void startDataParsing();
     void stopDataParsing();
 
-    bool isCellBlockedWithRobotSize(int x, int y,
-                                    const std::vector<std::vector<int>> &grid);
+/*     bool isCellBlockedWithRobotSize(int x, int y,
+                                    const std::vector<std::vector<int>> &grid); */
 
     void addDataToParse(const FieldPoints &fieldPoints);
     std::vector<Object3D> refineMapToObjects(const std::vector<std::vector<int>> &grid);
@@ -139,13 +139,24 @@ private:
                                                   const std::vector<Object3D> &objects,
                                                   std::vector<Eigen::Vector3f> &pathToFill);
 
-    std::vector<std::pair<int, int>> findPath(
+/*     std::vector<std::pair<int, int>> findPath(
         const std::vector<std::vector<int>> &grid,
         int startX, int startY, int destX, int destY);
-
+ */
     void linkDetectedObjects(std::vector<Object3D> &refined_currentDetectedObject,
                              const std::vector<Object3D> &refined_lastDetectedObject,
                              const Eigen::Vector3f &robotMovement);
+
+    
+    void enablePathFinding(bool val);
+    bool isPathFindingEnabled();
+
+    std::vector<Eigen::Vector3f> getCurrentPathfindingToDest();
+
+    std::pair<RobotSpatialInfos, Eigen::Vector3f> getCenteredRobotAndGoal();
+    
+    std::vector<Object3D> getRefinedCurrentDetectedObject();
+    std::vector<Object3D> getRefinedLastDetectedObject();
 
 public:
     float _startAngleManaged;
@@ -159,7 +170,6 @@ public:
     // // this is the robots size, it is used to determine a collision path to the objective
     // Eigen::Vector2d _robotSize = {PAMI_ROBOT_SIZE_LENGTH, PAMI_ROBOT_SIZE_WIDTH};
     ///
-    RobotSpatialInfos _robotInfos; // this need to be centralized in PAMI
 
     /// @brief this the vector that will be continuously parsed to update the map
     std::vector<FieldPoints> _dataToParse;
@@ -180,10 +190,24 @@ public:
     std::vector<std::vector<std::pair<bool, int>>> _occupancy_grid;
     ///     ///
 
-private:
     std::mutex _mutexDetectedObject;
-    std::vector<Object3D> refined_currentDetectedObject;
-    std::vector<Object3D> refined_lastDetectedObject;
+    std::vector<Object3D> _refinedCurrentDetectedObject;
+    std::vector<Object3D> _refinedLastDetectedObject;
+
+    
+    /// internal storage data that can be set to be keeped for debugging ///
+    std::mutex _mutexIsParsingData;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr _parsingDataPointCloud = nullptr;//(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr _parsingDataPointCloudFiltered = nullptr;//(new pcl::PointCloud<pcl::PointXYZ>());
+
+    
+    /// this allow us to shift the detected points to the "center" of our physical c++ map
+    /// our perception is around the robot, so points can be negative but our map start at 0
+    Eigen::Vector3f _mapCenterShifter = {0, 0, 0};
+private:
+    std::atomic<bool> _enablePathFinding;
+    std::atomic<bool> _enableObjectTracking;
+
 
     // callback to be informed when the data from the Lidar has been proccessed, will surely be replaced
     FieldPointsCallback _fieldPointsCallback_dataProcessed;
@@ -192,7 +216,6 @@ private:
     std::mutex _mutexPointsPathToDest;
     std::vector<Eigen::Vector3f> _pointsPathToDest;
 
-    /// this allow us to shift the detected points to the "center" of our physical c++ map
-    /// our perception is around the robot, so points can be negative but our map start at 0
-    Eigen::Vector3f _mapCenterShifter = {0, 0, 0};
+
+    
 };

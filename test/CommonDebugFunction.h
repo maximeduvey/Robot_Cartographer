@@ -73,12 +73,14 @@ public:
     static void addPointsToCloud(
         const std::vector<Eigen::Vector3f> &pathPoints,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
+        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
-    static void addPointToCloud(
+/*     static void addPointToCloud(
         const Eigen::Vector3f &point,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-        uint8_t r, uint8_t g, uint8_t b);
+        uint8_t r, uint8_t g, uint8_t b,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f}); */
 
     static pcl::PointXYZRGB addObjectToCloud(
         const Object3D &ob,
@@ -89,7 +91,8 @@ public:
     static void addObjectsToCloud(
         const std::vector<Object3D> &detectedObjects,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
-        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
+        uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
     static void writeCloudWriter(
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud, const std::string &filename);

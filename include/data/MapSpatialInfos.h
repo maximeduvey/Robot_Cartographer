@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#define MAPSPATIALINFOS_WIDTH 30000  // 3 Metre
-#define MAPSPATIALINFOS_LENGHT 20000 // 2 Metre
+#define MAPSPATIALINFOS_WIDTH 10000  // 3 Metre
+#define MAPSPATIALINFOS_LENGHT 10000 // 2 Metre
 #define MAPSPATIALINFOS_DEFAULT_GRID_RESOLUTION 1.0f 
 
 /// @brief This class is all the infos related to a map

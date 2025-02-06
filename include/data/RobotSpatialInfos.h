@@ -40,8 +40,8 @@ public:
   */
   std::pair<int, int> getRobotSizeInGridCells(float gridResolution);
 
-  // Equality operator for comparison
   bool operator==(const RobotSpatialInfos &other);
+  RobotSpatialInfos& operator=(const RobotSpatialInfos& other);
 
   // Print operator for debugging
   friend std::ostream &operator<<(std::ostream &os, const RobotSpatialInfos &info);
