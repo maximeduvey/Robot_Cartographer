@@ -353,7 +353,7 @@ pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
 }
 
 void CommonDebugFunction::addObjectsToCloud(
-    const std::vector<Object3D>& detectedObjects,
+    const std::vector<std::shared_ptr<Object3D>>& detectedObjects,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
     uint8_t r, uint8_t g, uint8_t b,
     const Eigen::Vector3f shifter/*  = {0.0f, 0.0f, 0.0f }*/)
@@ -362,8 +362,8 @@ void CommonDebugFunction::addObjectsToCloud(
     // Add detected objects with red color
     for (const auto& object : detectedObjects)
     {
-        auto pt = CommonDebugFunction::addObjectToCloud(object, cloud, r, g, b, shifter);
-        SingletonVisualizerManager::getInstance().addTextToPoint(pt, std::to_string(object.id), RGB_YELLOW, ++unic_id);
+        auto pt = CommonDebugFunction::addObjectToCloud(*object.get(), cloud, r, g, b, shifter);
+        SingletonVisualizerManager::getInstance().addTextToPoint(pt, std::to_string(object.get()->id), RGB_YELLOW, ++unic_id);
     }
 }
 
@@ -408,7 +408,7 @@ void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ>&
         outputCloud->points.push_back(coloredPoint);
     }
 }
-
+/* 
 // Function to save path and detected objects to a PCD file
 void CommonDebugFunction::savePointCloudToFile(
     const std::vector<Eigen::Vector3f>& pathPoints,
@@ -453,14 +453,14 @@ void CommonDebugFunction::savePointCloudToFile(
     CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
     CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
     CommonDebugFunction::writeCloudWriter(cloud, filename);
-}
+} */
 
 void CommonDebugFunction::savePointCloudToFile(
     const Object3D& robot,
     const Eigen::Vector3f& destination,
     const pcl::PointCloud<pcl::PointXYZ>& cloud2,
     const std::vector<Eigen::Vector3f>& pathPoints,
-    const std::vector<Object3D>& detectedObjects,
+    const std::vector<std::shared_ptr<Object3D>>& detectedObjects,
     const std::vector<SectorConeOfVision> &mapDetectedObject,
     const std::string& filename,
     const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)

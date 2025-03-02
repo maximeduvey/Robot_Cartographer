@@ -240,6 +240,8 @@ std::chrono::duration<double, std::milli> get_time_diff(
     return endtime - starttime;  // No need for explicit duration conversion
 }
 
+
+
 /// @brief this function will basically noise filter the data and fill occupancyGrid
 /// @param lidarPoints
 void Mapper::processLidarData(const FieldPoints& lidarPoints)
@@ -318,7 +320,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
         // refine ocupancy to ojects, so that we can easily calculate around it
         _mutexDetectedObject.lock();
         _refinedLastDetectedObject = _refinedCurrentDetectedObject;
-        _refinedCurrentDetectedObject = refineMapToObjects(occupancyGrid, lidarPoints.lidarCycle);
+        _refinedCurrentDetectedObject = refineMapToObjects(occupancyGrid, lidarPoints.lidarCycle, lidarPoints.start_angle, lidarPoints.end_angle);
         std::cout << TAG << "Refined objects:" << _refinedCurrentDetectedObject.size() << std::endl;
         _mutexDetectedObject.unlock();
 
@@ -342,7 +344,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
         nstart = std::chrono::high_resolution_clock::now();
         std::cout << "Time execution recursiveCalculateNextPathPositionToGoal: " << diff.count() << std::endl;
 
-/*                  CommonDebugFunction::savePointCloudToFile(
+        CommonDebugFunction::savePointCloudToFile(
                     rob_and_dest.first,
                     rob_and_dest.second,
                     *_parsingDataPointCloudFiltered,
@@ -354,7 +356,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
 
                             diff = get_time_diff(nstart);
                 nstart = std::chrono::high_resolution_clock::now();
-                std::cout << "Time execution savePointCloudToFile: " << diff.count() << std::endl;  */
+                std::cout << "Time execution savePointCloudToFile: " << diff.count() << std::endl;
 
     }
     else
@@ -379,15 +381,15 @@ std::pair<RobotSpatialInfos, Eigen::Vector3f> Mapper::getCenteredRobotAndGoal()
     return std::make_pair(robot, dest);
 }
 
-std::vector<Object3D> Mapper::refineMapToObjects(const std::vector<std::vector<int>>& grid, size_t lidarCycle)
+std::vector<std::shared_ptr<Object3D>> Mapper::refineMapToObjects(const std::vector<std::vector<int>>& grid, size_t lidarCycle, float start_angle, float end_angle)
 {
     int rows = grid.size();
     int cols = grid[0].size();
 
-    //std::cout << TAG << "rows:" << rows << ", cols:" << cols << std::endl;
+    std::cout << TAG << "rows:" << rows << ", cols:" << cols << std::endl;
 
     std::vector<std::vector<bool>> visited(rows, std::vector<bool>(cols, false));
-    std::vector<Object3D> objects;
+    std::vector<std::shared_ptr<Object3D>> objects;
 
     auto isValid = [&](int x, int y)
         {
@@ -442,12 +444,12 @@ std::vector<Object3D> Mapper::refineMapToObjects(const std::vector<std::vector<i
                 float length = (maxX - minX + 1) * _map.gridResolution;
                 float width = (maxY - minY + 1) * _map.gridResolution;
 
-                auto obj = Object3D{
+                auto obj = std::make_shared<Object3D>(
                     Eigen::Vector3f(centerX, centerY, 0.0f),
                     Eigen::Vector3f(length, width, _map.gridResolution)
-                };
+                );
 
-                addObjectToSector(obj, lidarCycle);
+                addObjectToSector(obj, lidarCycle, start_angle, end_angle);
                 objects.push_back(obj);
             }
         }
@@ -456,24 +458,33 @@ std::vector<Object3D> Mapper::refineMapToObjects(const std::vector<std::vector<i
     return objects;
 }
 
-void Mapper::addObjectToSector(const Object3D& obj, size_t lidarCycle)
-{
-    float angle = atan2(obj.center.y(), obj.center.x()) * 180.0f / M_PI;
-    if (angle < 0) angle += 360.0f; // Normalize to [0, 360)
 
-    // Find the corresponding sector
+void Mapper::addObjectToSector(std::shared_ptr<Object3D>& obj, size_t lidarCycle, float start_angle, float end_angle)
+{
+    auto sectors = getRelevantSectors(start_angle, end_angle);
+
     for (auto& sector : _mapDetectedObject) {
-        if (angle >= sector.startAngle && angle < sector.endAngle) {
-            // If LIDAR cycle is new, clear sector before adding objects
-            if (sector.lidarCycle != lidarCycle) {
-                sector._detectedObjects.clear();
-                sector.lidarCycle = lidarCycle;
-            }
-            sector._detectedObjects.push_back(obj);
-            break;
+        if (sector.lidarCycle != lidarCycle) {
+            sector._detectedObjects.clear();
+            sector.lidarCycle = lidarCycle;
         }
+        sector._detectedObjects.push_back(obj);
     }
 }
+
+std::vector<SectorConeOfVision*> Mapper::getRelevantSectors(uint16_t start_angle, uint16_t end_angle) {
+    static constexpr float sectorWidth = 360.0f / MAPPER_NUMBER_SECTOR_REMANENT_DATA;
+    
+    size_t startIdx = static_cast<size_t>(start_angle / sectorWidth);
+    size_t endIdx = static_cast<size_t>(end_angle / sectorWidth);
+
+    std::vector<SectorConeOfVision*> sectors;
+    for (size_t i = startIdx; i <= endIdx && i < _mapDetectedObject.size(); ++i) {
+        sectors.push_back(&_mapDetectedObject[i]);
+    }
+    return sectors;
+}
+
 
 // deprecated, do not use
 bool Mapper::isInCollision(const Eigen::Vector3f& position, const Eigen::Vector3f& size, const Eigen::Vector3f& point)
@@ -599,7 +610,7 @@ Eigen::Vector3f Mapper::getCollidingNextPositionCloserBorderLogic(const RobotSpa
 /// @return
 void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos& robot,
     const Eigen::Vector3f& destination,
-    const std::vector<Object3D>& objects,
+    const std::vector<std::shared_ptr<Object3D>>& objects,
     std::vector<Eigen::Vector3f>& pathToFill)
 {
     if (pathToFill.size() >= MAPPER_MAX_DEPTH_PATH_NUMBER_POINT)
@@ -608,10 +619,10 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos& r
         return;
     }
 
-    std::vector<Object3D> filteredObjects;
+    std::vector<std::shared_ptr<Object3D>> filteredObjects;
     for (const auto& obj : objects)
     {
-        if ((obj.center - robot.center).dot(destination - robot.center) > 0)
+        if ((obj.get()->center - robot.center).dot(destination - robot.center) > 0)
         {
             filteredObjects.push_back(obj);
         }
@@ -625,14 +636,14 @@ void Mapper::recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos& r
 
     for (const auto& obj : filteredObjects)
     {
-        if (lineIntersectsAABB(robot, obj, destination))
+        if (lineIntersectsAABB(robot, *obj.get(), destination))
         {
-            float distance = (obj.center - robot.center).norm();
+            float distance = (obj.get()->center - robot.center).norm();
             if (distance < closestCollisionDist)
             {
-                std::cout << "Collision detected for " << robot << ", And: " << obj << "in direction of detination: " << destination[0] << ",y:" << destination[1] << ",z:" << destination[2] << std::endl;
+                std::cout << "Collision detected for " << robot << ", And: " << obj.get() << "in direction of detination: " << destination[0] << ",y:" << destination[1] << ",z:" << destination[2] << std::endl;
                 closestCollisionDist = distance;
-                closestObject = obj;
+                closestObject = *obj.get();
                 foundCollision = true;
             }
         }
@@ -715,13 +726,13 @@ void Mapper::linkDetectedObjects(
 }
 
 // Getter for refinedCurrentDetectedObject
-std::vector<Object3D> Mapper::getRefinedCurrentDetectedObject() {
+std::vector<std::shared_ptr<Object3D>> Mapper::getRefinedCurrentDetectedObject() {
     std::lock_guard<std::mutex> lock(_mutexDetectedObject);
     return _refinedCurrentDetectedObject;
 }
 
 // Getter for refinedLastDetectedObject
-std::vector<Object3D> Mapper::getRefinedLastDetectedObject() {
+std::vector<std::shared_ptr<Object3D>> Mapper::getRefinedLastDetectedObject() {
     std::lock_guard<std::mutex> lock(_mutexDetectedObject);
     return _refinedLastDetectedObject;
 }

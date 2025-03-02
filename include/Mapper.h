@@ -112,7 +112,7 @@ public:
                                     const std::vector<std::vector<int>> &grid); */
 
     void addDataToParse(const FieldPoints &fieldPoints);
-    std::vector<Object3D> refineMapToObjects(const std::vector<std::vector<int>> &grid, size_t lidarCycle);
+    std::vector<std::shared_ptr<Object3D>> refineMapToObjects(const std::vector<std::vector<int>> &grid, size_t lidarCycle, float start_angle, float end_angle);
 
     void saveOccupancyGridToFile(const std::string &filename);
 
@@ -131,8 +131,8 @@ public:
     
     std::vector<Eigen::Vector3f> getCurrentPathfindingToDest();
 
-    std::vector<Object3D> getRefinedCurrentDetectedObject();
-    std::vector<Object3D> getRefinedLastDetectedObject();
+    std::vector<std::shared_ptr<Object3D>> getRefinedCurrentDetectedObject();
+    std::vector<std::shared_ptr<Object3D>> getRefinedLastDetectedObject();
 
 private:
     static void loop_parseFieldPoints(Mapper *myself);
@@ -154,10 +154,10 @@ private:
     bool isInCollision(const Eigen::Vector3f &position, const Eigen::Vector3f &size, const Eigen::Vector3f &point);
     void recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &robot,
                                                   const Eigen::Vector3f &destination,
-                                                  const std::vector<Object3D> &objects,
+                                                  const std::vector<std::shared_ptr<Object3D>> &objects,
                                                   std::vector<Eigen::Vector3f> &pathToFill);
 
-    void addObjectToSector(const Object3D& obj, size_t lidarCycle);
+    void addObjectToSector(std::shared_ptr<Object3D> &obj, size_t lidarCycle, float start_angle, float end_angle);
 
     void linkDetectedObjects(std::vector<Object3D> &refined_currentDetectedObject,
                              const std::vector<Object3D> &refined_lastDetectedObject,
@@ -166,7 +166,7 @@ private:
     
     void enablePathFinding(bool val);
     bool isPathFindingEnabled();
-
+    std::vector<SectorConeOfVision*> getRelevantSectors(uint16_t start_angle, uint16_t end_angle);
 
 public:
     float _startAngleManaged;
@@ -201,8 +201,8 @@ public:
     ///     ///
 
     std::mutex _mutexDetectedObject;
-    std::vector<Object3D> _refinedCurrentDetectedObject;
-    std::vector<Object3D> _refinedLastDetectedObject;
+    std::vector<std::shared_ptr<Object3D>> _refinedCurrentDetectedObject;
+    std::vector<std::shared_ptr<Object3D>> _refinedLastDetectedObject;
     // this represent the map around the robot with the detected object, splitted by sector that will be refreshed by the lidar roatation
     std::vector<SectorConeOfVision> _mapDetectedObject = std::vector<SectorConeOfVision>(MAPPER_NUMBER_SECTOR_REMANENT_DATA);
 

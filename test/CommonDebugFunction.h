@@ -89,7 +89,7 @@ public:
         const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
     static void addObjectsToCloud(
-        const std::vector<Object3D> &detectedObjects,
+        const std::vector<std::shared_ptr<Object3D>> &detectedObjects,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
         uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
         const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
@@ -102,7 +102,7 @@ public:
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &outputCloud,
         uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
         const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
-
+/* 
     static void savePointCloudToFile(
         const pcl::PointCloud<pcl::PointXYZ> &cloud2,
         const std::vector<Eigen::Vector3f> &pathPoints,
@@ -114,14 +114,14 @@ public:
         const pcl::PointCloud<pcl::PointXYZ> &cloud2,
         const std::vector<Eigen::Vector3f> &pathPoints,
         const std::vector<Object3D> &detectedObjects,
-        const std::string &filename);
+        const std::string &filename); */
 
     static void savePointCloudToFile(
         const Object3D &robot,
         const Eigen::Vector3f &destination,
         const pcl::PointCloud<pcl::PointXYZ> &cloud2,
         const std::vector<Eigen::Vector3f> &pathPoints,
-        const std::vector<Object3D> &detectedObjects,
+        const std::vector<std::shared_ptr<Object3D>> &detectedObjects,
         const std::vector<SectorConeOfVision> &mapDetectedObject,
         const std::string &filename,
         const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
