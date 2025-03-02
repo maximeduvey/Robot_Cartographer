@@ -52,6 +52,17 @@ public:
   }
 };
 
+/// This class represent a cone of vision with the robot as it's center. it is used for mapping detected object around the robot and 
+/// updating (clearing) these object as the lidar rotate on itself and have new information about this zone
+class SectorConeOfVision
+{
+  public :
+  std::vector<Object3D> _detectedObjects;
+  float startAngle = 0.0f, endAngle = 0.0f;
+  size_t lidarCycle = 0;
+
+};
+
 /// @brief this class represent a point in space, it has a distance var when this point is relative to an object
 /// for example the lidar detect a point "far away" set it's pos and distance relative to the robot/lidar
 struct Point
@@ -68,6 +79,10 @@ public:
   // lidarCycle allow us to measure if the data are perceiving is an additionnal one
   // or an update that should erase the previous one
   size_t lidarCycle = 0;
+  // this is the angle of detection of the data, if you have no way to know it, just do not set it
+  // it will work but will be less efficient for stack skipping mecanism
+  uint16_t start_angle = 0;
+  uint16_t end_angle = 0;
   std::vector<Point> points;
 };
 

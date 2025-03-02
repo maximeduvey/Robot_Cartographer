@@ -26,6 +26,7 @@ public:
 
     void addTextToPoint(const pcl::PointXYZRGB &point, std::string text, uint8_t r, uint8_t g, uint8_t b, int id);
 
+    void clearPointCloud();
     // Run the viewer loop (non-blocking)
     void spinOnce(int delay = 100);
 

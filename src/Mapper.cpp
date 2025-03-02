@@ -7,6 +7,7 @@
 #include <queue>
 #include <functional>
 #include <Eigen/Dense>
+#include <chrono>
 
 #include <CommonDebugFunction.h>
 #include <SingletonGameState.h>
@@ -28,8 +29,14 @@ Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
     //_mapCenterShifter = {0, 0, 0};
 
     _enablePathFinding.store(false);
-}
 
+    // creating the radar map around the robot
+    float sectorWidth = 360.0f / MAPPER_NUMBER_SECTOR_REMANENT_DATA;
+    for (int i = 0; i < MAPPER_NUMBER_SECTOR_REMANENT_DATA; ++i) {
+        _mapDetectedObject[i].startAngle = i * sectorWidth;
+        _mapDetectedObject[i].endAngle = (i + 1) * sectorWidth;
+    }
+}
 Mapper::~Mapper()
 {
 }
@@ -77,31 +84,56 @@ void Mapper::setNoiseFilterNbrCorelationPoint(int nbr)
 
 // for debug
 
+/// this function regulary check if new lidar data is added, then get the stack to make it available again
+/// and then will parse the data it retrieved (as the proccess to parse take more time than than to retrieve, a skipping mecanism need to be functionnal)
+/// otherwise a overflow will happen
 void Mapper::loop_parseFieldPoints(Mapper* myself)
 {
 
     std::cout << TAG << std::endl;
     while (myself->_end.load() != true)
     {
-        myself->_mutextDataToParse.lock();
-        auto nbr = myself->_dataToParse.size();
-        myself->_mutextDataToParse.unlock();
-        if (nbr > 0)
+        std::vector<FieldPoints> localBuffer;
+        // Lock, swap, and release quickly
         {
-            myself->_mutextDataToParse.lock();
-            std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
-            for (const auto& fieldpoints : myself->_dataToParse)
-            {
-                myself->processLidarData(fieldpoints.points);
+            std::lock_guard<std::mutex> lock(myself->_mutextDataToParse);
+            if (!myself->_dataToParse.empty()) {
+                std::swap(localBuffer, myself->_dataToParse);
+                myself->_dataToParse.clear();
             }
-            myself->_dataToParse.clear();
-            std::cout << TAG << "after" << myself->_dataToParse.size() << std::endl;
-            myself->_mutextDataToParse.unlock();
+        }
+        if (!localBuffer.empty())
+        {
+            std::cout << TAG << "_dataToParse contain:" << localBuffer.size() << std::endl;
+            for (const auto& fieldpoints : localBuffer)
+            {
+                myself->processLidarData(fieldpoints);
+            }
         }
         else
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(MAPPER_DEFAULT_WAITING_TIME_PARSER_EMPTY_LIST));
         }
+
+        /*         myself->_mutextDataToParse.lock();
+                auto nbr = myself->_dataToParse.size();
+                myself->_mutextDataToParse.unlock();
+                if (nbr > 0)
+                {
+                    myself->_mutextDataToParse.lock();
+                    std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
+                    for (const auto& fieldpoints : myself->_dataToParse)
+                    {
+                        myself->processLidarData(fieldpoints);
+                    }
+                    myself->_dataToParse.clear();
+                    std::cout << TAG << "after" << myself->_dataToParse.size() << std::endl;
+                    myself->_mutextDataToParse.unlock();
+                }
+                else
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(MAPPER_DEFAULT_WAITING_TIME_PARSER_EMPTY_LIST));
+                } */
     }
 }
 
@@ -125,8 +157,23 @@ std::vector<Eigen::Vector3f> Mapper::getCurrentPathfindingToDest()
 
 void Mapper::addDataToParse(const FieldPoints& fieldPoints)
 {
-    std::cout << TAG << std::endl;
+    //std::cout << TAG << std::endl;
     _mutextDataToParse.lock();
+    if (_dataToParse.size() >= MAPPER_MAX_STACK_DATA_TO_PARSE) {
+        // meaning lidar does not provide angle of it's point measure 
+        if (fieldPoints.start_angle == fieldPoints.end_angle) {
+            _dataToParse.erase(_dataToParse.begin(), _dataToParse.begin() + MAPPER_NBR_STACK_TO_SKIP);
+        }
+        else { // meaning each fields point has it's angle of measure
+            for (auto it = _dataToParse.rbegin(); it != _dataToParse.rend(); ++it) {
+                if (it->end_angle <= fieldPoints.end_angle && it->end_angle >= fieldPoints.start_angle) {
+                    // Remove everything before this point to maintain continuity
+                    _dataToParse.erase(_dataToParse.begin(), it.base());
+                    break;
+                }
+            }
+        }
+    }
     _dataToParse.push_back(fieldPoints);
     _mutextDataToParse.unlock();
 }
@@ -186,14 +233,26 @@ pcl::PointCloud<pcl::PointXYZ> Mapper::convertToPCLCloud(const std::vector<Point
     return cloud;
 }
 
+std::chrono::duration<double, std::milli> get_time_diff(
+    const std::chrono::time_point<std::chrono::high_resolution_clock>& starttime)
+{
+    auto endtime = std::chrono::high_resolution_clock::now();
+    return endtime - starttime;  // No need for explicit duration conversion
+}
+
 /// @brief this function will basically noise filter the data and fill occupancyGrid
 /// @param lidarPoints
-void Mapper::processLidarData(const std::vector<Point>& lidarPoints)
+void Mapper::processLidarData(const FieldPoints& lidarPoints)
 {
+    auto starttime = std::chrono::high_resolution_clock::now();
     _mutexIsParsingData.lock();
     // Convert lidar data to PCL point cloud
     _parsingDataPointCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
-    *_parsingDataPointCloud = convertToPCLCloud(lidarPoints);
+    *_parsingDataPointCloud = convertToPCLCloud(lidarPoints.points);
+
+    auto diff = get_time_diff(starttime);
+    auto nstart = std::chrono::high_resolution_clock::now();
+    std::cout << "Time execution convertToPCLCloud: " << diff.count() << std::endl;
 
     // 1. Noise Filtering using Statistical Outlier Removal
     _parsingDataPointCloudFiltered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
@@ -202,6 +261,10 @@ void Mapper::processLidarData(const std::vector<Point>& lidarPoints)
     sor.setMeanK(_noiseFilter_nbrCorelationPoint.load()); // Set number of neighbors to analyze
     sor.setStddevMulThresh(1.0);                          // Threshold for outliers
     sor.filter(*_parsingDataPointCloudFiltered);
+
+    diff = get_time_diff(nstart);
+    nstart = std::chrono::high_resolution_clock::now();
+    std::cout << "Time execution setMeanK: " << diff.count() << std::endl;
 
     // 2. Clustering (filter) using Euclidean Cluster Extraction
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
@@ -216,6 +279,11 @@ void Mapper::processLidarData(const std::vector<Point>& lidarPoints)
     ec.setSearchMethod(tree);
     ec.setInputCloud(_parsingDataPointCloudFiltered);
     ec.extract(cluster_indices);
+
+    //diff = get_time_diff(nstart);
+    //nstart = std::chrono::high_resolution_clock::now();
+    //std::cout << "Time execution setClusterTolerance: " << diff.count() << std::endl;
+
 
     // 3. Create an Occupancy Grid, really useful when we have big grid cell that can contain multiple point
     // in most lidar case we have one dot per cell
@@ -241,20 +309,52 @@ void Mapper::processLidarData(const std::vector<Point>& lidarPoints)
             }
         }
 
+
+        diff = get_time_diff(nstart);
+        nstart = std::chrono::high_resolution_clock::now();
+        std::cout << "Time execution occupancyGrid: " << diff.count() << std::endl;
+
+        // it's refineMapToObjects that take moke of the time calculation (around 240ms when the rest is 0.1, and occupancy grid 22ms)
         // refine ocupancy to ojects, so that we can easily calculate around it
         _mutexDetectedObject.lock();
         _refinedLastDetectedObject = _refinedCurrentDetectedObject;
-        _refinedCurrentDetectedObject = refineMapToObjects(occupancyGrid);
+        _refinedCurrentDetectedObject = refineMapToObjects(occupancyGrid, lidarPoints.lidarCycle);
         std::cout << TAG << "Refined objects:" << _refinedCurrentDetectedObject.size() << std::endl;
         _mutexDetectedObject.unlock();
 
+
+        diff = get_time_diff(nstart);
+        nstart = std::chrono::high_resolution_clock::now();
+        std::cout << "Time execution refineMapToObjects: " << diff.count() << std::endl;
+
+        for (const auto& sector : _mapDetectedObject) {
+            std::cout << TAG << "Sector:" << sector.startAngle << " to " << sector.endAngle << ", llc:" <<
+                sector.lidarCycle << ", objs:" << sector._detectedObjects.size() << std::endl;
+        }
+
+        auto rob_and_dest = getCenteredRobotAndGoal();
         if (_enablePathFinding.load() == true) {
-            auto rob_and_dest = getCenteredRobotAndGoal();
             std::lock_guard<std::mutex> lock(_mutexPointsPathToDest);
             recursiveCalculateNextPathPositionToGoal(rob_and_dest.first, rob_and_dest.second, _refinedCurrentDetectedObject, _pointsPathToDest);
         }
 
-        // CommonDebugFunction::savePointCloudToFile(_robotInfos, desination_goal, *_parsingDataPointCloudFiltered, _pointsPathToDest, _refinedCurrentDetectedObject, "objectAndPath", -_mapCenterShifter);
+        diff = get_time_diff(nstart);
+        nstart = std::chrono::high_resolution_clock::now();
+        std::cout << "Time execution recursiveCalculateNextPathPositionToGoal: " << diff.count() << std::endl;
+
+/*                  CommonDebugFunction::savePointCloudToFile(
+                    rob_and_dest.first,
+                    rob_and_dest.second,
+                    *_parsingDataPointCloudFiltered,
+                    _pointsPathToDest,
+                    _refinedCurrentDetectedObject,
+                    _mapDetectedObject,
+                    "objectAndPath",
+                    -_mapCenterShifter);
+
+                            diff = get_time_diff(nstart);
+                nstart = std::chrono::high_resolution_clock::now();
+                std::cout << "Time execution savePointCloudToFile: " << diff.count() << std::endl;  */
 
     }
     else
@@ -279,115 +379,12 @@ std::pair<RobotSpatialInfos, Eigen::Vector3f> Mapper::getCenteredRobotAndGoal()
     return std::make_pair(robot, dest);
 }
 
-/* 
-bool Mapper::isCellBlockedWithRobotSize(int x, int y,
-    const std::vector<std::vector<int>>& grid)
-{
-    auto robotCellsSize = _robotInfos.getRobotSizeInGridCells(_map.gridResolution);
-    int rows = grid.size();
-    int cols = grid[0].size();
-    // Check if any cell within the robot's footprint is occupied
-    for (int dx = -robotCellsSize.first / 2; dx <= robotCellsSize.first / 2; ++dx)
-    {
-        for (int dy = -robotCellsSize.second / 2; dy <= robotCellsSize.second / 2; ++dy)
-        {
-            int nx = x + dx, ny = y + dy;
-            if (nx < 0 || nx >= rows || ny < 0 || ny >= cols || grid[nx][ny] > 0)
-            {
-                return true; // Cell is blocked or out of bounds
-            }
-        }
-    }
-    return false;
-}
-
-std::vector<std::pair<int, int>> Mapper::findPath(
-    const std::vector<std::vector<int>>& grid,
-    int startX, int startY, int destX, int destY)
+std::vector<Object3D> Mapper::refineMapToObjects(const std::vector<std::vector<int>>& grid, size_t lidarCycle)
 {
     int rows = grid.size();
     int cols = grid[0].size();
 
-    auto heuristic = [](int x1, int y1, int x2, int y2)
-        {
-            return std::hypot(x2 - x1, y2 - y1);
-        };
-    std::cout << TAG << "1" << std::endl;
-
-    // Priority queue for open list
-    std::priority_queue<Node*, std::vector<Node*>, CompareNode> openList;
-    std::unordered_map<int, Node*> allNodes;
-    auto hash = [cols](int x, int y)
-        { return x * cols + y; };
-
-    // Start and destination nodes
-    Node* startNode = new Node(startX, startY, 0, heuristic(startX, startY, destX, destY));
-    openList.push(startNode);
-    allNodes[hash(startX, startY)] = startNode;
-
-    std::cout << TAG << "2" << std::endl;
-    std::vector<std::pair<int, int>> directions{ {0, 1}, {1, 0}, {0, -1}, {-1, 0} };
-
-    while (!openList.empty())
-    {
-        Node* current = openList.top();
-        openList.pop();
-
-        // Check if we reached the destination
-        if (current->x == destX && current->y == destY)
-        {
-            std::vector<std::pair<int, int>> path;
-            for (Node* node = current; node; node = node->parent)
-            {
-                path.emplace_back(node->x, node->y);
-            }
-            std::reverse(path.begin(), path.end());
-
-            // Cleanup all nodes
-            for (auto& [_, node] : allNodes)
-                delete node;
-            return path;
-        }
-        std::cout << TAG << "3" << std::endl;
-
-        // Explore neighbors
-        for (const auto& [dx, dy] : directions)
-        {
-            int nx = current->x + dx, ny = current->y + dy;
-
-            // Check if the candidate cell is navigable
-            if (nx >= 0 && nx < rows &&
-                ny >= 0 && ny < cols &&
-                !isCellBlockedWithRobotSize(nx, ny, grid))
-            {
-                float newCost = current->cost + 1.0f;
-                int nodeHash = hash(nx, ny);
-
-                if (allNodes.find(nodeHash) == allNodes.end() || newCost < allNodes[nodeHash]->cost)
-                {
-                    Node* neighbor = new Node(nx, ny, newCost, heuristic(nx, ny, destX, destY), current);
-                    openList.push(neighbor);
-                    allNodes[nodeHash] = neighbor;
-                }
-            }
-        }
-    }
-
-    std::cout << TAG << "4" << std::endl;
-
-    // Cleanup all nodes if no path is found
-    for (auto& [_, node] : allNodes)
-        delete node;
-    return {}; // Return empty path if no route to destination
-} */
-
-std::vector<Object3D> Mapper::refineMapToObjects(
-    const std::vector<std::vector<int>>& grid)
-{
-    int rows = grid.size();
-    int cols = grid[0].size();
-
-    std::cout << TAG << "rows:" << rows << ", cols:" << cols << std::endl;
+    //std::cout << TAG << "rows:" << rows << ", cols:" << cols << std::endl;
 
     std::vector<std::vector<bool>> visited(rows, std::vector<bool>(cols, false));
     std::vector<Object3D> objects;
@@ -420,7 +417,8 @@ std::vector<Object3D> Mapper::refineMapToObjects(
 
                     for (const auto& [dx, dy] : directions)
                     {
-                        int nx = cx + dx, ny = cy + dy;
+                        int nx = cx + dx;
+                        int ny = cy + dy;
                         if (isValid(nx, ny))
                         {
                             visited[nx][ny] = true;
@@ -444,15 +442,37 @@ std::vector<Object3D> Mapper::refineMapToObjects(
                 float length = (maxX - minX + 1) * _map.gridResolution;
                 float width = (maxY - minY + 1) * _map.gridResolution;
 
-                objects.push_back(Object3D{
-                    Eigen::Vector3f(centerX, centerY, 0.0f),            // Assuming 2D map; z = 0
-                    Eigen::Vector3f(length, width, _map.gridResolution) // Assuming uniform grid resolution for height
-                    });
+                auto obj = Object3D{
+                    Eigen::Vector3f(centerX, centerY, 0.0f),
+                    Eigen::Vector3f(length, width, _map.gridResolution)
+                };
+
+                addObjectToSector(obj, lidarCycle);
+                objects.push_back(obj);
             }
         }
     }
 
     return objects;
+}
+
+void Mapper::addObjectToSector(const Object3D& obj, size_t lidarCycle)
+{
+    float angle = atan2(obj.center.y(), obj.center.x()) * 180.0f / M_PI;
+    if (angle < 0) angle += 360.0f; // Normalize to [0, 360)
+
+    // Find the corresponding sector
+    for (auto& sector : _mapDetectedObject) {
+        if (angle >= sector.startAngle && angle < sector.endAngle) {
+            // If LIDAR cycle is new, clear sector before adding objects
+            if (sector.lidarCycle != lidarCycle) {
+                sector._detectedObjects.clear();
+                sector.lidarCycle = lidarCycle;
+            }
+            sector._detectedObjects.push_back(obj);
+            break;
+        }
+    }
 }
 
 // deprecated, do not use

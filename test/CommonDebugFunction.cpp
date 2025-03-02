@@ -308,8 +308,9 @@ pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
     uint8_t r, uint8_t g, uint8_t b,
     const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
-    //std::cout << TAG << std::endl;
+
     Object3D object(ob);
+    //std::cout << TAG << " size :" << object.size << std::endl;
     object.center = object.center + shifter;
     // Represent the object by its center position
     pcl::PointXYZRGB pclPoint;
@@ -321,29 +322,32 @@ pcl::PointXYZRGB CommonDebugFunction::addObjectToCloud(
     pclPoint.b = b;
     cloud->points.push_back(pclPoint);
 
-    // Optionally, add points for object boundaries or corners
-    Eigen::Vector3f halfSize = object.size * 0.5f;
-    std::vector<Eigen::Vector3f> corners = {
-        object.center + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), -halfSize.z()),
-        object.center + Eigen::Vector3f(halfSize.x(), -halfSize.y(), -halfSize.z()),
-        object.center + Eigen::Vector3f(halfSize.x(), halfSize.y(), -halfSize.z()),
-        object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), -halfSize.z()),
-        object.center + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), halfSize.z()),
-        object.center + Eigen::Vector3f(halfSize.x(), -halfSize.y(), halfSize.z()),
-        object.center + Eigen::Vector3f(halfSize.x(), halfSize.y(), halfSize.z()),
-        object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), halfSize.z()),
-    };
-
-    for (const auto& corner : corners)
+    if (object.size.x() > 1 || object.size.y() > 1 || object.size.z() > 1 )
     {
-        pcl::PointXYZRGB cornerPoint;
-        cornerPoint.x = corner.x();
-        cornerPoint.y = corner.y();
-        cornerPoint.z = corner.z();
-        cornerPoint.r = r;
-        cornerPoint.g = g;
-        cornerPoint.b = b;
-        cloud->points.push_back(cornerPoint);
+        // Optionally, add points for object boundaries or corners
+        Eigen::Vector3f halfSize = object.size * 0.5f;
+        std::vector<Eigen::Vector3f> corners = {
+            object.center + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), -halfSize.z()),
+            object.center + Eigen::Vector3f(halfSize.x(), -halfSize.y(), -halfSize.z()),
+            object.center + Eigen::Vector3f(halfSize.x(), halfSize.y(), -halfSize.z()),
+            object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), -halfSize.z()),
+            object.center + Eigen::Vector3f(-halfSize.x(), -halfSize.y(), halfSize.z()),
+            object.center + Eigen::Vector3f(halfSize.x(), -halfSize.y(), halfSize.z()),
+            object.center + Eigen::Vector3f(halfSize.x(), halfSize.y(), halfSize.z()),
+            object.center + Eigen::Vector3f(-halfSize.x(), halfSize.y(), halfSize.z()),
+        };
+
+        for (const auto& corner : corners)
+        {
+            pcl::PointXYZRGB cornerPoint;
+            cornerPoint.x = corner.x();
+            cornerPoint.y = corner.y();
+            cornerPoint.z = corner.z();
+            cornerPoint.r = r;
+            cornerPoint.g = g;
+            cornerPoint.b = b;
+            cloud->points.push_back(cornerPoint);
+        }
     }
     return pclPoint;
 }
@@ -354,7 +358,7 @@ void CommonDebugFunction::addObjectsToCloud(
     uint8_t r, uint8_t g, uint8_t b,
     const Eigen::Vector3f shifter/*  = {0.0f, 0.0f, 0.0f }*/)
 {
-    std::cout << TAG << std::endl;
+    //std::cout << TAG << std::endl;
     // Add detected objects with red color
     for (const auto& object : detectedObjects)
     {
@@ -457,27 +461,30 @@ void CommonDebugFunction::savePointCloudToFile(
     const pcl::PointCloud<pcl::PointXYZ>& cloud2,
     const std::vector<Eigen::Vector3f>& pathPoints,
     const std::vector<Object3D>& detectedObjects,
+    const std::vector<SectorConeOfVision> &mapDetectedObject,
     const std::string& filename,
     const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
     //std::cout << TAG << "A" << std::endl;
-    //SingletonVisualizerManager::getInstance().clearViewer();
+    //SingletonVisualizerManager::getInstance().clearPointCloud();
     //std::cout << TAG << "B" <<std::endl;
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
     auto start = CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_ORANGE, shifter);
     SingletonVisualizerManager::getInstance().addTextToPoint(start, "START", RGB_YELLOW, ++unic_id);
+    // auto destPoint = CommonDebugFunction::eigneVecToPoint((destination + shifter), RGB_YELLOW);
+    // cloud->points.push_back(destPoint);
+    // SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
+    // CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
+    // CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN, shifter);
+    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_PURPLE, shifter);
+    for (const auto &sector : mapDetectedObject) {
+        CommonDebugFunction::addObjectsToCloud(sector._detectedObjects, cloud, RGB_RED, shifter);
+    }
 
-    auto destPoint = CommonDebugFunction::eigneVecToPoint((destination + shifter), RGB_YELLOW);
-    cloud->points.push_back(destPoint);
-    SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
-
-    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
-    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN, shifter);
-    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED, shifter);
-
-
-    //CommonDebugFunction::writeCloudWriter(cloud, filename);
-    SingletonVisualizerManager::getInstance().updatePointCloud(cloud);
+     auto starttime = std::chrono::high_resolution_clock::now();
+     SingletonVisualizerManager::getInstance().updatePointCloud(cloud);
+     auto diff = std::chrono::high_resolution_clock::now() - starttime;
+     std::cout << "Time execution SingletonVisualizerManager::getInstance().updatePointCloud(cloud): " << diff.count() << std::endl;
 }

@@ -99,3 +99,9 @@ bool SingletonVisualizerManager::wasStopped()
     // std::cout << TAG << (viewer ? (viewer->wasStopped() ? "stopped" : "running") : "viewer is dead") <<std::endl;
     return viewer ? viewer->wasStopped() : true;
 }
+
+void SingletonVisualizerManager::clearPointCloud() {
+    std::lock_guard<std::mutex> lock(viewerMutex);
+    viewer->removeAllPointClouds();
+}
+

@@ -38,6 +38,16 @@
 #define MAPPER_MARGING_DETECTION_THRESHOLD_MERGER 1.0f
 #define MAPPER_MAX_DEPTH_PATH_NUMBER_POINT 50
 
+// as it's faster to get new lidar infos than to proccess it, we set a max stack size, so that after this size 
+// we skip older data 
+#define MAPPER_MAX_STACK_DATA_TO_PARSE 40
+// and each time 
+#define MAPPER_NBR_STACK_TO_SKIP 20
+
+// to have remanent data that got updated as the lidar is scanning around, we create "cone of vision" that are sector
+// this define the number of sector we split around 
+#define MAPPER_NUMBER_SECTOR_REMANENT_DATA 24
+
 // this is the distance (from an corner pos) we consider to be "as if" we are on this corner 
 #define MAPPER_THRESHOLD_DISTANCE_FOR_CORNER 1.0f
 
@@ -102,7 +112,7 @@ public:
                                     const std::vector<std::vector<int>> &grid); */
 
     void addDataToParse(const FieldPoints &fieldPoints);
-    std::vector<Object3D> refineMapToObjects(const std::vector<std::vector<int>> &grid);
+    std::vector<Object3D> refineMapToObjects(const std::vector<std::vector<int>> &grid, size_t lidarCycle);
 
     void saveOccupancyGridToFile(const std::string &filename);
 
@@ -131,7 +141,7 @@ private:
                                                               const Object3D &collidingObject,
                                                               const Eigen::Vector3f &destination);
 
-    void processLidarData(const std::vector<Point> &lidarPoints);
+    void processLidarData(const FieldPoints &lidarPoints);
     Point transformPointToGlobal(const Point &point);
     void updateOccupancyGrid(const Point &global_point);
 
@@ -141,10 +151,8 @@ private:
                                                   const std::vector<Object3D> &objects,
                                                   std::vector<Eigen::Vector3f> &pathToFill);
 
-/*     std::vector<std::pair<int, int>> findPath(
-        const std::vector<std::vector<int>> &grid,
-        int startX, int startY, int destX, int destY);
- */
+    void addObjectToSector(const Object3D& obj, size_t lidarCycle);
+
     void linkDetectedObjects(std::vector<Object3D> &refined_currentDetectedObject,
                              const std::vector<Object3D> &refined_lastDetectedObject,
                              const Eigen::Vector3f &robotMovement);
@@ -194,6 +202,8 @@ public:
     std::mutex _mutexDetectedObject;
     std::vector<Object3D> _refinedCurrentDetectedObject;
     std::vector<Object3D> _refinedLastDetectedObject;
+    // this represent the map around the robot with the detected object, splitted by sector that will be refreshed by the lidar roatation
+    std::vector<SectorConeOfVision> _mapDetectedObject = std::vector<SectorConeOfVision>(MAPPER_NUMBER_SECTOR_REMANENT_DATA);
 
     
     /// internal storage data that can be set to be keeped for debugging ///

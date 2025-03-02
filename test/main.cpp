@@ -69,7 +69,7 @@ void updateVisual()
         map.getRefinedCurrentDetectedObject(),
         "objectAndPath", -map._mapCenterShifter);
     (&map)->_mutexIsParsingData.unlock();
-    SingletonVisualizerManager::getInstance().spinOnce(100);
+    SingletonVisualizerManager::getInstance().spinOnce(1);
     
 }
 
@@ -105,6 +105,6 @@ int main()
 int main_test() {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("Viewer"));
     viewer->addCoordinateSystem(1.0);
-    viewer->spinOnce(100);
+    viewer->spinOnce(1, true);
     return 0;
 }

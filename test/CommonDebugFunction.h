@@ -122,6 +122,7 @@ public:
         const pcl::PointCloud<pcl::PointXYZ> &cloud2,
         const std::vector<Eigen::Vector3f> &pathPoints,
         const std::vector<Object3D> &detectedObjects,
+        const std::vector<SectorConeOfVision> &mapDetectedObject,
         const std::string &filename,
         const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 };
