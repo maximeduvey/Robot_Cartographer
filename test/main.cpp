@@ -1,5 +1,5 @@
 
-#include "Mapper.h"
+#include <Mapper.h>
 
 #include "CommonDebugFunction.h"
 
@@ -9,7 +9,8 @@
 #include <cmath>
 #include <iostream>
 
-#include "SingletonVisualizerManager.h"
+#include <SingletonVisualizerManager.h>
+#include <SingletonGameState.h>
 
 MapSpatialInfos msi(200, 300, 1);
 Mapper map(msi);
@@ -64,10 +65,10 @@ void updateVisual()
     auto rob_and_dest = map.getCenteredRobotAndGoal();
     auto pathfinding = map.getCurrentPathfindingToDest();
 
-    CommonDebugFunction::savePointCloudToFile(rob_and_dest.first, rob_and_dest.second,
+/*     CommonDebugFunction::savePointCloudToFile(rob_and_dest.first, rob_and_dest.second,
         *map._parsingDataPointCloud, pathfinding,
         map.getRefinedCurrentDetectedObject(),
-        "objectAndPath", -map._mapCenterShifter);
+        "objectAndPath", -map._mapCenterShifter); */
     (&map)->_mutexIsParsingData.unlock();
     SingletonVisualizerManager::getInstance().spinOnce(1);
     

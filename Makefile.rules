@@ -2,45 +2,63 @@
 ### Flags and other environment variable used to compile the project Mapping and pathfinding
 
 
-MAPPING_AND_PATHFINDING_EXTERNAL_LIB = $(MAPPING_AND_PATHFINDING_SOURCE_PATH)/external_lib
+### getting path of this makefile ###
+ROBOT_CARTOGRAPHER_MAKEFILE := $(lastword $(MAKEFILE_LIST))
+ROBOT_CARTOGRAPHER_SOURCE_PATH := $(dir $(realpath $(ROBOT_CARTOGRAPHER_MAKEFILE)))
+### ###
+ifndef ROBOT_CARTOGRAPHER_SOURCE_PATH
+ROBOT_CARTOGRAPHER_SOURCE_PATH = .
+endif
 
-#MAPPING_AND_PATHFINDING_PCL_LIB = $(MAPPING_AND_PATHFINDING_EXTERNAL_LIB)/pcl
-MAPPING_AND_PATHFINDING_PCL_LIB = /usr/include/pcl-1.12/pcl
+ifndef ROBOT_CORE_PATH
+ROBOT_CORE_PATH = ../Robot_Core
+endif
+include $(ROBOT_CORE_PATH)/Makefile.rules
 
-MAPPING_AND_PATHFINDING_INCLUDE_DIR = $(MAPPING_AND_PATHFINDING_SOURCE_PATH)/include
-MAPPING_AND_PATHFINDING_SRC_DIR = $(MAPPING_AND_PATHFINDING_SOURCE_PATH)/src
-MAPPING_AND_PATHFINDING_DATA_DIR = data
-MAPPING_AND_PATHFINDING_TEST_DIR = $(MAPPING_AND_PATHFINDING_SOURCE_PATH)/test
 
-$(info MAPPING_AND_PATHFINDING_SRC_DIR=$(MAPPING_AND_PATHFINDING_SRC_DIR))
+ROBOT_CARTOGRAPHER_EXTERNAL_LIB = $(ROBOT_CARTOGRAPHER_SOURCE_PATH)/external_lib
+
+#ROBOT_CARTOGRAPHER_PCL_LIB = $(ROBOT_CARTOGRAPHER_EXTERNAL_LIB)/pcl
+ROBOT_CARTOGRAPHER_PCL_LIB = /usr/include/pcl-1.12/pcl
+
+ROBOT_CARTOGRAPHER_INCLUDE_DIR = $(ROBOT_CARTOGRAPHER_SOURCE_PATH)/include
+ROBOT_CARTOGRAPHER_SRC_DIR = $(ROBOT_CARTOGRAPHER_SOURCE_PATH)/src
+ROBOT_CARTOGRAPHER_DATA_DIR = data
+ROBOT_CARTOGRAPHER_TEST_DIR = $(ROBOT_CARTOGRAPHER_SOURCE_PATH)test
 
 # Define VTK version
 VTK_VERSION = 7.1
 
 # Include directories for PCL and VTK
-MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR = /usr/local/include/pcl-1.14/
-MAPPING_AND_PATHFINDING_VTK_INCLUDE_DIR = /usr/include/vtk-$(VTK_VERSION)/
+ROBOT_CARTOGRAPHER_PCL_INCLUDE_DIR = /usr/local/include/pcl-1.14/
+ROBOT_CARTOGRAPHER_VTK_INCLUDE_DIR = /usr/include/vtk-$(VTK_VERSION)/
 
 # Compile flags with dynamic VTK version
-MAPPING_AND_PATHFINDING_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
-        -lvtkCommonCore-$(VTK_VERSION) -lvtkCommonDataModel-$(VTK_VERSION) -lvtkCommonMath-$(VTK_VERSION) \
-        -lvtkIOCore-$(VTK_VERSION) -lvtkIOGeometry-$(VTK_VERSION) \
-        -lvtkRenderingCore-$(VTK_VERSION) -lvtkRenderingOpenGL2-$(VTK_VERSION) -lvtkRenderingFreeType-$(VTK_VERSION) \
-        -lvtkFiltersCore-$(VTK_VERSION) -lvtkInteractionStyle-$(VTK_VERSION) \
-        -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
-        -lvtkCommonExecutionModel-$(VTK_VERSION)
+ROBOT_CARTOGRAPHER_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
+    -lvtkCommonCore-$(VTK_VERSION) -lvtkCommonDataModel-$(VTK_VERSION) -lvtkCommonMath-$(VTK_VERSION) \
+    -lvtkIOCore-$(VTK_VERSION) -lvtkIOGeometry-$(VTK_VERSION) \
+    -lvtkRenderingCore-$(VTK_VERSION) -lvtkRenderingOpenGL2-$(VTK_VERSION) -lvtkRenderingFreeType-$(VTK_VERSION) \
+    -lvtkFiltersCore-$(VTK_VERSION) -lvtkInteractionStyle-$(VTK_VERSION) \
+    -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
+    -lvtkCommonExecutionModel-$(VTK_VERSION)
 
-MAPPING_AND_PATHFINDING_INCLUDE_FLAGS = -I $(MAPPING_AND_PATHFINDING_INCLUDE_DIR) \
-    -I $(MAPPING_AND_PATHFINDING_INCLUDE_DIR)/$(MAPPING_AND_PATHFINDING_DATA_DIR) \
-    -I $(MAPPING_AND_PATHFINDING_TEST_DIR) \
-    -I $(MAPPING_AND_PATHFINDING_PCL_INCLUDE_DIR) \
-    -I $(MAPPING_AND_PATHFINDING_VTK_INCLUDE_DIR) \
-    -I $(MAPPING_AND_PATHFINDING_EXTERNAL_LIB)/eigen
+ROBOT_CARTOGRAPHER_INCLUDE_FLAGS = \
+    $(ROBOT_CORE_INCLUDE_FLAGS) \
+    -I $(ROBOT_CARTOGRAPHER_INCLUDE_DIR) \
+    -I $(ROBOT_CARTOGRAPHER_TEST_DIR) \
+    -I $(ROBOT_CARTOGRAPHER_PCL_INCLUDE_DIR) \
+    -I $(ROBOT_CARTOGRAPHER_VTK_INCLUDE_DIR)
 
-MAPPING_AND_PATHFINDING_SRC_FILES := $(wildcard $(MAPPING_AND_PATHFINDING_SRC_DIR)/Mapper.cpp) \
-    $(wildcard $(MAPPING_AND_PATHFINDING_TEST_DIR)/Common*.cpp) \
-    $(wildcard $(MAPPING_AND_PATHFINDING_TEST_DIR)/Singleton*.cpp) \
-    $(wildcard $(MAPPING_AND_PATHFINDING_SRC_DIR)/$(MAPPING_AND_PATHFINDING_DATA_DIR)/*.cpp)
+ROBOT_CARTOGRAPHER_SRC_FILES := \
+    $(ROBOT_CORE_SRC_FILES) \
+    $(wildcard $(ROBOT_CARTOGRAPHER_SRC_DIR)/Mapper.cpp) \
+    $(wildcard $(ROBOT_CARTOGRAPHER_TEST_DIR)/Common*.cpp) \
+    $(wildcard $(ROBOT_CARTOGRAPHER_TEST_DIR)/Singleton*.cpp) \
+    $(wildcard $(ROBOT_CARTOGRAPHER_SRC_DIR)/$(ROBOT_CARTOGRAPHER_DATA_DIR)/*.cpp)
 
-$(info MAPPING_AND_PATHFINDING_SRC_FILES=$(MAPPING_AND_PATHFINDING_SRC_FILES))
-
+$(info ### including Robot Cartographer ###)
+$(info ROBOT_CARTOGRAPHER_SOURCE_PATH=$(ROBOT_CARTOGRAPHER_SOURCE_PATH))
+$(info ROBOT_CARTOGRAPHER_INCLUDE_FLAGS=$(ROBOT_CARTOGRAPHER_INCLUDE_FLAGS))
+$(info ROBOT_CARTOGRAPHER_SRC_FILES=$(ROBOT_CARTOGRAPHER_SRC_FILES))
+$(info ### ###)
+$(info )

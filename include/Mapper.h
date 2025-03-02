@@ -128,6 +128,12 @@ public:
     inline void setFieldPointsCallback(FieldPointsCallback callback) { _fieldPointsCallback_dataProcessed = callback; };
     
     std::pair<RobotSpatialInfos, Eigen::Vector3f> getCenteredRobotAndGoal();
+    
+    std::vector<Eigen::Vector3f> getCurrentPathfindingToDest();
+
+    std::vector<Object3D> getRefinedCurrentDetectedObject();
+    std::vector<Object3D> getRefinedLastDetectedObject();
+
 private:
     static void loop_parseFieldPoints(Mapper *myself);
 
@@ -161,11 +167,6 @@ private:
     void enablePathFinding(bool val);
     bool isPathFindingEnabled();
 
-    std::vector<Eigen::Vector3f> getCurrentPathfindingToDest();
-
-    
-    std::vector<Object3D> getRefinedCurrentDetectedObject();
-    std::vector<Object3D> getRefinedLastDetectedObject();
 
 public:
     float _startAngleManaged;

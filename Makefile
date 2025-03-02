@@ -1,6 +1,8 @@
 # Directories
 # this allow to set the origin and make every include make abel to also add the include flags
-MAPPING_AND_PATHFINDING_SOURCE_PATH = $(PWD)
+ROBOT_CARTOGRAPHER_SOURCE_PATH = $(PWD)
+
+# so that it cna be set elsewhere
 include Makefile.rules
 
 TEST_DIR = test
@@ -12,21 +14,23 @@ CXX = g++
 # Compiler flags
 INCLUDE_DIRS = \
     -I $(TEST_DIR) \
-    $(MAPPING_AND_PATHFINDING_INCLUDE_FLAGS) \
+    $(ROBOT_CORE_INCLUDE_FLAGS) \
+    $(ROBOT_CARTOGRAPHER_INCLUDE_FLAGS) \
     -Wall -O0 -g
 #-std=c++17
 
 # Libraries
-LDFLAGS =  -Wl,--no-as-needed \
-        $(MAPPING_AND_PATHFINDING_COMPILE_FLAGS) \
-        -lpthread \
-        -lncurses \
-        -lm
+LDFLAGS = \
+    $(ROBOT_CORE_COMPILE_FLAGS) \
+    $(ROBOT_CARTOGRAPHER_COMPILE_FLAGS) \
+    -Wl,--no-as-needed -lpthread -lncurses -lm
 
 # Source files
-SRC_FILES = $(MAPPING_AND_PATHFINDING_SRC_FILES) \
-            $(TEST_DIR)/CreationTools.cpp \
-            $(TEST_DIR)/main.cpp
+SRC_FILES = \
+    $(ROBOT_CORE_SRC_FILES) \
+    $(ROBOT_CARTOGRAPHER_SRC_FILES) \
+    $(TEST_DIR)/CreationTools.cpp \
+    $(TEST_DIR)/main.cpp
 
 
 $(info SRC_FILES=$(SRC_FILES))

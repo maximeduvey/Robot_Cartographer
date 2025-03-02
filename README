@@ -1,5 +1,11 @@
 
 
+
+###################################################
+### This poject need Robot_Core to compile      ###
+### git@github.com:maximeduvey/Robot_Core.git   ###
+###################################################
+ 
 # apt install
 sudo apt-get install libvtk7-dev libglew-dev libpcl-dev
 
