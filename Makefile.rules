@@ -11,7 +11,7 @@ ROBOT_CARTOGRAPHER_SOURCE_PATH = .
 endif
 
 ifndef ROBOT_CORE_PATH
-ROBOT_CORE_PATH = ../Robot_Core
+ROBOT_CORE_PATH = $(ROBOT_CARTOGRAPHER_SOURCE_PATH)/../Robot_Core
 endif
 include $(ROBOT_CORE_PATH)/Makefile.rules
 
