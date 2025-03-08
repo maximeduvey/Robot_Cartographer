@@ -8,6 +8,7 @@
 #include <functional>
 #include <Eigen/Dense>
 #include <chrono>
+#include <cmath>
 
 #include <CommonDebugFunction.h>
 #include <SingletonGameState.h>
@@ -178,15 +179,6 @@ void Mapper::addDataToParse(const FieldPoints& fieldPoints)
     _mutextDataToParse.unlock();
 }
 
-/// @brief Points are relative to the robot and are relative to it's rotation
-/// @param point
-void Mapper::parsePointToMap_pointsAreRelativeToRobot(const Point& point)
-{
-    // std::cout << TAG << std::endl;
-    const auto absPoint = transformPointToGlobal(point);
-    updateOccupancyGrid(absPoint);
-}
-
 /// @brief Points x,y are aboslute and does not depend of the robot position or rotation
 /// @param point
 void Mapper::parsePointToMap_pointsAreAbsolute(const Point& point)
@@ -207,17 +199,6 @@ Point Mapper::transformPointToGlobal(const Point& point)
     ret.pos.y() = point.pos.x() * sin_theta + point.pos.y() * cos_theta + _robotInfos.center.y();
  */
     return ret;
-}
-
-void Mapper::updateOccupancyGrid(const Point& global_point)
-{
-    // Convert global point coordinates to grid cell indices
-    int grid_x = static_cast<int>(std::round(global_point.pos.y() / _map.gridResolution)) + (_map.grid_width / 2);
-    int grid_y = static_cast<int>(std::round(global_point.pos.y() / _map.gridResolution)) + (_map.grid_lenght / 2);
-    if (grid_x >= 0 && grid_x < _map.grid_width && grid_y >= 0 && grid_y < _map.grid_lenght)
-    {
-        _occupancy_grid[grid_y][grid_x].second += 1;
-    }
 }
 
 pcl::PointCloud<pcl::PointXYZ> Mapper::convertToPCLCloud(const std::vector<Point>& lidarPoints)
@@ -292,7 +273,8 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
     std::cout << "cluster_indices.size : " << cluster_indices.size() << std::endl;
     if (cluster_indices.size() > 0)
     {
-        std::vector<std::vector<int>> occupancyGrid(_map.grid_width, std::vector<int>(_map.grid_lenght, 0));
+        std::vector<std::vector<int>> occupancyGrid(_map.grid_width,
+                                   std::vector<int>(_map.grid_lenght, 0));
         for (const auto& cluster : cluster_indices)
         {
             for (const int& index : cluster.indices)
@@ -300,12 +282,14 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
                 pcl::PointXYZ point = _parsingDataPointCloudFiltered->points[index];
 
                 // Convert point coordinates to grid indices
-                int gridX = static_cast<int>((point.x / _map.gridResolution) + _mapCenterShifter.x());
-                int gridY = static_cast<int>((point.y / _map.gridResolution) + _mapCenterShifter.y());
+                int gridX = static_cast<int>(std::ceil((point.x  + _mapCenterShifter.x()) / _map.gridResolution));
+                int gridY = static_cast<int>(std::ceil((point.y + _mapCenterShifter.y() / _map.gridResolution)));
 
                 // Check bounds before writing to the grid
                 if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
                 {
+                    std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y << ", gridX:" << gridX << ", gridY:" << gridY <<
+                    ",  mcs_X:" <<  _mapCenterShifter.x() << ",  mcs_Y:" <<  _mapCenterShifter.y() << ",  mcs_Z:" <<  _mapCenterShifter.z() << std::endl;
                     occupancyGrid[gridX][gridY] += 1;
                 }
             }
@@ -330,7 +314,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
         std::cout << "Time execution refineMapToObjects: " << diff.count() << std::endl;
 
         for (const auto& sector : _mapDetectedObject) {
-            std::cout << TAG << "Sector:" << sector.startAngle << " to " << sector.endAngle << ", llc:" <<
+            std::cout << TAG << "Sector:" << sector.startAngle << " to " << sector.endAngle << ", lidarcycle:" <<
                 sector.lidarCycle << ", objs:" << sector._detectedObjects.size() << std::endl;
         }
 
@@ -344,6 +328,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
         nstart = std::chrono::high_resolution_clock::now();
         std::cout << "Time execution recursiveCalculateNextPathPositionToGoal: " << diff.count() << std::endl;
 
+        if (_mapDetectedObject[0].lidarCycle % 3 == 0) {
         CommonDebugFunction::savePointCloudToFile(
                     rob_and_dest.first,
                     rob_and_dest.second,
@@ -353,6 +338,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
                     _mapDetectedObject,
                     "objectAndPath",
                     -_mapCenterShifter);
+        }
 
                             diff = get_time_diff(nstart);
                 nstart = std::chrono::high_resolution_clock::now();
@@ -439,14 +425,15 @@ std::vector<std::shared_ptr<Object3D>> Mapper::refineMapToObjects(const std::vec
                     maxY = std::max(maxY, cy);
                 }
 
-                float centerX = ((minX + maxX) / 2.0f) * _map.gridResolution;
-                float centerY = ((minY + maxY) / 2.0f) * _map.gridResolution;
-                float length = (maxX - minX + 1) * _map.gridResolution;
-                float width = (maxY - minY + 1) * _map.gridResolution;
+                float centerX = ((minX + maxX) / 2.0f);
+                float centerY = ((minY + maxY) / 2.0f);
+                float length = (maxX - minX) ;
+                float width = (maxY - minY);
+                std::cout << TAG << ", centerX:" << centerX << ", centerY:" << centerY << std::endl;
 
                 auto obj = std::make_shared<Object3D>(
-                    Eigen::Vector3f(centerX, centerY, 0.0f),
-                    Eigen::Vector3f(length, width, _map.gridResolution)
+                    Eigen::Vector3f(centerX, centerY, 0.0f)  * _map.gridResolution,
+                    Eigen::Vector3f(length, width, 1) * _map.gridResolution
                 );
 
                 addObjectToSector(obj, lidarCycle, start_angle, end_angle);

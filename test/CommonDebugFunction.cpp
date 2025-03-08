@@ -356,14 +356,18 @@ void CommonDebugFunction::addObjectsToCloud(
     const std::vector<std::shared_ptr<Object3D>>& detectedObjects,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
     uint8_t r, uint8_t g, uint8_t b,
-    const Eigen::Vector3f shifter/*  = {0.0f, 0.0f, 0.0f }*/)
+    const Eigen::Vector3f shifter /*  = {0.0f, 0.0f, 0.0f }*/,
+    const Eigen::Vector3f robotPos /* = {0.0f, 0.0f, 0.0f});*/
+)
 {
     //std::cout << TAG << std::endl;
     // Add detected objects with red color
     for (const auto& object : detectedObjects)
     {
-        auto pt = CommonDebugFunction::addObjectToCloud(*object.get(), cloud, r, g, b, shifter);
-        SingletonVisualizerManager::getInstance().addTextToPoint(pt, std::to_string(object.get()->id), RGB_YELLOW, ++unic_id);
+        const auto obj = *object.get();
+        auto pt = CommonDebugFunction::addObjectToCloud(obj, cloud, r, g, b, shifter);
+
+        SingletonVisualizerManager::getInstance().addTextToPoint(pt, std::to_string((robotPos - obj.center).norm()), RGB_YELLOW, ++unic_id);
     }
 }
 
@@ -408,79 +412,31 @@ void CommonDebugFunction::mergePointClouds(const pcl::PointCloud<pcl::PointXYZ>&
         outputCloud->points.push_back(coloredPoint);
     }
 }
-/* 
-// Function to save path and detected objects to a PCD file
-void CommonDebugFunction::savePointCloudToFile(
-    const std::vector<Eigen::Vector3f>& pathPoints,
-    const std::vector<Object3D>& detectedObjects,
-    const std::string& filename)
-{
-    // Create a PointCloud to store all points
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-
-    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
-    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
-    CommonDebugFunction::writeCloudWriter(cloud, filename);
-}
-
-void CommonDebugFunction::savePointCloudToFile(
-    const pcl::PointCloud<pcl::PointXYZ>& cloud2,
-    const std::vector<Eigen::Vector3f>& pathPoints,
-    const std::vector<Object3D>& detectedObjects,
-    const std::string& filename)
-{
-    // Create a PointCloud to store all points
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-
-    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
-    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
-    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
-    CommonDebugFunction::writeCloudWriter(cloud, filename);
-}
-
-void CommonDebugFunction::savePointCloudToFile(
-    const Object3D& robot,
-    const pcl::PointCloud<pcl::PointXYZ>& cloud2,
-    const std::vector<Eigen::Vector3f>& pathPoints,
-    const std::vector<Object3D>& detectedObjects,
-    const std::string& filename)
-{
-    // Create a PointCloud to store all points
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-
-    CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_LIGHT_BLUE);
-    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
-    CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN);
-    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_RED);
-    CommonDebugFunction::writeCloudWriter(cloud, filename);
-} */
 
 void CommonDebugFunction::savePointCloudToFile(
     const Object3D& robot,
     const Eigen::Vector3f& destination,
     const pcl::PointCloud<pcl::PointXYZ>& cloud2,
     const std::vector<Eigen::Vector3f>& pathPoints,
-    const std::vector<std::shared_ptr<Object3D>>& detectedObjects,
+    const std::vector<std::shared_ptr<Object3D>>& refinedCurrentDetectedObjec,
     const std::vector<SectorConeOfVision> &mapDetectedObject,
     const std::string& filename,
     const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
-    //std::cout << TAG << "A" << std::endl;
-    //SingletonVisualizerManager::getInstance().clearPointCloud();
-    //std::cout << TAG << "B" <<std::endl;
     // Create a PointCloud to store all points
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
     auto start = CommonDebugFunction::addObjectToCloud(robot, cloud, RGB_ORANGE, shifter);
     SingletonVisualizerManager::getInstance().addTextToPoint(start, "START", RGB_YELLOW, ++unic_id);
-    // auto destPoint = CommonDebugFunction::eigneVecToPoint((destination + shifter), RGB_YELLOW);
-    // cloud->points.push_back(destPoint);
-    // SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
-    // CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
-    // CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN, shifter);
-    CommonDebugFunction::addObjectsToCloud(detectedObjects, cloud, RGB_PURPLE, shifter);
+    auto destPoint = CommonDebugFunction::eigneVecToPoint((destination + shifter), RGB_YELLOW);
+    cloud->points.push_back(destPoint);
+    SingletonVisualizerManager::getInstance().addTextToPoint(destPoint, "END", RGB_DARK_GREEN, ++unic_id);
+    CommonDebugFunction::mergePointClouds(cloud2, cloud, RGB_WHITE);
+    //CommonDebugFunction::addPointsToCloud(pathPoints, cloud, RGB_GREEN, shifter);
+
+    //CommonDebugFunction::addObjectsToCloud(refinedCurrentDetectedObjec, cloud, RGB_PURPLE, shifter);
     for (const auto &sector : mapDetectedObject) {
-        CommonDebugFunction::addObjectsToCloud(sector._detectedObjects, cloud, RGB_RED, shifter);
+        CommonDebugFunction::addObjectsToCloud(sector._detectedObjects, cloud, RGB_RED, shifter, robot.center);
     }
 
      auto starttime = std::chrono::high_resolution_clock::now();

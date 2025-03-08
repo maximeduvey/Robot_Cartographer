@@ -92,7 +92,8 @@ public:
         const std::vector<std::shared_ptr<Object3D>> &detectedObjects,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud,
         uint8_t r = 255, uint8_t g = 255, uint8_t b = 255,
-        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f},
+        const Eigen::Vector3f robotPos = {0.0f, 0.0f, 0.0f});
 
     static void writeCloudWriter(
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud, const std::string &filename);

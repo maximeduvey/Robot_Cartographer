@@ -149,7 +149,6 @@ private:
 
     void processLidarData(const FieldPoints &lidarPoints);
     Point transformPointToGlobal(const Point &point);
-    void updateOccupancyGrid(const Point &global_point);
 
     bool isInCollision(const Eigen::Vector3f &position, const Eigen::Vector3f &size, const Eigen::Vector3f &point);
     void recursiveCalculateNextPathPositionToGoal(const RobotSpatialInfos &robot,

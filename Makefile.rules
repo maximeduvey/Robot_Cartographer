@@ -33,14 +33,19 @@ VTK_VERSION = 7.1
 ROBOT_CARTOGRAPHER_PCL_INCLUDE_DIR = /usr/local/include/pcl-1.14/
 ROBOT_CARTOGRAPHER_VTK_INCLUDE_DIR = /usr/include/vtk-$(VTK_VERSION)/
 
-# Compile flags with dynamic VTK version
-ROBOT_CARTOGRAPHER_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
+ROBOT_CARTOGRAPHER_VTK_FLAGS = \
     -lvtkCommonCore-$(VTK_VERSION) -lvtkCommonDataModel-$(VTK_VERSION) -lvtkCommonMath-$(VTK_VERSION) \
     -lvtkIOCore-$(VTK_VERSION) -lvtkIOGeometry-$(VTK_VERSION) \
     -lvtkRenderingCore-$(VTK_VERSION) -lvtkRenderingOpenGL2-$(VTK_VERSION) -lvtkRenderingFreeType-$(VTK_VERSION) \
     -lvtkFiltersCore-$(VTK_VERSION) -lvtkInteractionStyle-$(VTK_VERSION) \
-    -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
     -lvtkCommonExecutionModel-$(VTK_VERSION)
+
+
+# Compile flags with dynamic VTK version
+ROBOT_CARTOGRAPHER_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
+    -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
+    $(ROBOT_CARTOGRAPHER_VTK_FLAGS)
+    
 
 ROBOT_CARTOGRAPHER_INCLUDE_FLAGS = \
     $(ROBOT_CORE_INCLUDE_FLAGS) \
