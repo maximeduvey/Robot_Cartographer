@@ -283,12 +283,15 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
 
                 // Convert point coordinates to grid indices
                 int gridX = static_cast<int>(std::ceil((point.x  + _mapCenterShifter.x()) / _map.gridResolution));
-                int gridY = static_cast<int>(std::ceil((point.y + _mapCenterShifter.y() / _map.gridResolution)));
+                int gridY = static_cast<int>(std::ceil((point.y + _mapCenterShifter.y()) / _map.gridResolution));
 
                 // Check bounds before writing to the grid
                 if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
                 {
-                    std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y << ", gridX:" << gridX << ", gridY:" << gridY <<
+                    std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
+                    ", b ceil x:" << (point.x  + _mapCenterShifter.x()) << ", ceil x" << std::ceil(point.x  + _mapCenterShifter.x()) <<
+                    ", b ceil y:" << (point.y  + _mapCenterShifter.y()) << ", ceil y" << std::ceil(point.y  + _mapCenterShifter.y()) <<
+                    ", gridX:" << gridX << ", gridY:" << gridY <<
                     ",  mcs_X:" <<  _mapCenterShifter.x() << ",  mcs_Y:" <<  _mapCenterShifter.y() << ",  mcs_Z:" <<  _mapCenterShifter.z() << std::endl;
                     occupancyGrid[gridX][gridY] += 1;
                 }
@@ -423,13 +426,14 @@ std::vector<std::shared_ptr<Object3D>> Mapper::refineMapToObjects(const std::vec
                     maxX = std::max(maxX, cx);
                     minY = std::min(minY, cy);
                     maxY = std::max(maxY, cy);
+                    std::cout << "CLUSTER CELLS cx:" << cx << ", cy:" << cy << std::endl;
                 }
 
                 float centerX = ((minX + maxX) / 2.0f);
                 float centerY = ((minY + maxY) / 2.0f);
                 float length = (maxX - minX) ;
                 float width = (maxY - minY);
-                std::cout << TAG << ", centerX:" << centerX << ", centerY:" << centerY << std::endl;
+                std::cout << "OBJECT Result centerX:" << centerX << ", centerY:" << centerY << ",  _map.gridResolution:"<<  _map.gridResolution<< std::endl;
 
                 auto obj = std::make_shared<Object3D>(
                     Eigen::Vector3f(centerX, centerY, 0.0f)  * _map.gridResolution,
