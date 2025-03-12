@@ -27,6 +27,9 @@ void SingletonVisualizerManager::updatePointCloud(const pcl::PointCloud<pcl::Poi
     std::lock_guard<std::mutex> lock(viewerMutex);
     if (viewer)
     {
+        if (viewer->contains("cloud")) {
+            viewer->removePointCloud("cloud");
+        }
         if (!viewer->updatePointCloud(cloud, cloudID))
         {
             viewer->addPointCloud<pcl::PointXYZ>(cloud, cloudID);
@@ -43,6 +46,9 @@ void SingletonVisualizerManager::updatePointCloud(const pcl::PointCloud<pcl::Poi
     std::cout << TAG << std::endl;
     if (viewer)
     {
+        if (viewer->contains("cloud")) {
+            viewer->removePointCloud("cloud");
+        }
         if (!viewer->updatePointCloud(cloud, cloudID))
         {
             viewer->addPointCloud<pcl::PointXYZRGB>(cloud, cloudID);

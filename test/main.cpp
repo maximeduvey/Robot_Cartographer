@@ -87,7 +87,7 @@ int main()
     FieldPoints field;
     field.points = vec;
 
-    CommonDebugFunction::savePointsToFile(vec, "vec.log");
+    //CommonDebugFunction::savePointsToFile(vec, "vec.log");
     map.addDataToParse(field);
 
     // CommonDebugFunction::saveOccupancyGridToFile(map._occupancy_grid, "output.log", {0,0,0},{0,0,0});

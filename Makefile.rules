@@ -40,11 +40,13 @@ ROBOT_CARTOGRAPHER_VTK_FLAGS = \
     -lvtkFiltersCore-$(VTK_VERSION) -lvtkInteractionStyle-$(VTK_VERSION) \
     -lvtkCommonExecutionModel-$(VTK_VERSION)
 
+ROBOT_CARTOGRAPHER_OPENGL_FLAGS = -lGL -lGLU -lglut -lglfw -lGLEW
 
 # Compile flags with dynamic VTK version
 ROBOT_CARTOGRAPHER_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu \
     -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
-    $(ROBOT_CARTOGRAPHER_VTK_FLAGS)
+    $(ROBOT_CARTOGRAPHER_VTK_FLAGS) \
+    $(ROBOT_CARTOGRAPHER_OPENGL_FLAGS)
     
 
 ROBOT_CARTOGRAPHER_INCLUDE_FLAGS = \
@@ -59,6 +61,7 @@ ROBOT_CARTOGRAPHER_SRC_FILES := \
     $(wildcard $(ROBOT_CARTOGRAPHER_SRC_DIR)/Mapper.cpp) \
     $(wildcard $(ROBOT_CARTOGRAPHER_TEST_DIR)/Common*.cpp) \
     $(wildcard $(ROBOT_CARTOGRAPHER_TEST_DIR)/Singleton*.cpp) \
+    $(ROBOT_CARTOGRAPHER_TEST_DIR)/OpenGLRenderer.cpp \
     $(wildcard $(ROBOT_CARTOGRAPHER_SRC_DIR)/$(ROBOT_CARTOGRAPHER_DATA_DIR)/*.cpp)
 
 $(info ### including Robot Cartographer ###)

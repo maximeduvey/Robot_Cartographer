@@ -11,6 +11,11 @@ sudo apt-get install libvtk7-dev libglew-dev libpcl-dev
 
 sudo apt-get install libncurses5-dev libncursesw5-dev
 
+
+# openGl visualizer (better faster than pcl but pcl is used for point cloud calculation)
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+                 libglfw3-dev libglew-dev pkg-config libglm-dev
+
 #if not found
 sudo apt update
 apt search libvtk
@@ -23,7 +28,6 @@ sudo apt-get install qtbase5-dev
 sudo apt-get install libpcap-dev
 sudo apt-get install freeglut3-dev
 sudo apt-get install libboost-all-dev
-
 
 
 git submodule add https://github.com/PointCloudLibrary/pcl.git

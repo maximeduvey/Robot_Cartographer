@@ -331,7 +331,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
         nstart = std::chrono::high_resolution_clock::now();
         std::cout << "Time execution recursiveCalculateNextPathPositionToGoal: " << diff.count() << std::endl;
 
-        if (_mapDetectedObject[0].lidarCycle % 3 == 0) {
+/*         if (_mapDetectedObject[0].lidarCycle % 3 == 0) {
         CommonDebugFunction::savePointCloudToFile(
                     rob_and_dest.first,
                     rob_and_dest.second,
@@ -341,7 +341,7 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
                     _mapDetectedObject,
                     "objectAndPath",
                     -_mapCenterShifter);
-        }
+        } */
 
                             diff = get_time_diff(nstart);
                 nstart = std::chrono::high_resolution_clock::now();
