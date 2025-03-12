@@ -11,6 +11,10 @@
 #include <memory>
 #include <iostream>
 #include <Eigen/Dense>
+#include <thread>
+
+#include "OpenGLRenderer.h"
+
 
 class SingletonVisualizerManager {
 public:
@@ -19,31 +23,29 @@ public:
 
     // Initialize the viewer
     void initialize();
+    void start();
 
-    // Update the point cloud in the viewer
-    void updatePointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const std::string& cloudID = "sample cloud");
-    void updatePointCloud(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud, const std::string& cloudID = "sample cloud");
-
-    void addTextToPoint(const pcl::PointXYZRGB &point, std::string text, uint8_t r, uint8_t g, uint8_t b, int id);
-
-    void clearPointCloud();
-    // Run the viewer loop (non-blocking)
-    void spinOnce(int delay = 100);
-
-    // Check if the viewer was stopped
-    bool wasStopped();
-
-    
-    void clearViewer();
+    void AddToDisplay(
+        const Object3D& robot,
+        const Eigen::Vector3f& destination,
+        const pcl::PointCloud<pcl::PointXYZ>& cloud,
+        const std::vector<Eigen::Vector3f>& pathPoints,
+        const std::vector<std::shared_ptr<Object3D>>& refinedCurrentDetectedObjec,
+        const std::vector<SectorConeOfVision> &mapDetectedObject,
+        const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
 private:
     // Private constructor for singleton
-    SingletonVisualizerManager() : viewer(nullptr) {}
+    SingletonVisualizerManager() {}
 
     // No copying or assignment
     SingletonVisualizerManager(const SingletonVisualizerManager&) = delete;
     SingletonVisualizerManager& operator=(const SingletonVisualizerManager&) = delete;
 
-    pcl::visualization::PCLVisualizer::Ptr viewer; // PCL visualizer
-    std::mutex viewerMutex;                        // Protect access to the viewer
+    //pcl::visualization::PCLVisualizer::Ptr viewer; // PCL visualizer
+    
+    std::mutex viewerMutex;
+    std::shared_ptr<OpenGLRenderer> _viewer;
+    std::thread _viewerThread;
+    
 };

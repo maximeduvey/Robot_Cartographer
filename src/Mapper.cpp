@@ -10,7 +10,7 @@
 #include <chrono>
 #include <cmath>
 
-#include <CommonDebugFunction.h>
+#include <SingletonVisualizerManager.h>
 #include <SingletonGameState.h>
 
 #define AABB_LOG_DEBUG false
@@ -105,7 +105,7 @@ void Mapper::loop_parseFieldPoints(Mapper* myself)
         }
         if (!localBuffer.empty())
         {
-            std::cout << TAG << "_dataToParse contain:" << localBuffer.size() << std::endl;
+            //std::cout << TAG << "_dataToParse contain:" << localBuffer.size() << std::endl;
             for (const auto& fieldpoints : localBuffer)
             {
                 myself->processLidarData(fieldpoints);
@@ -288,11 +288,11 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
                 // Check bounds before writing to the grid
                 if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
                 {
-                    std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
+/*                     std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
                     ", b ceil x:" << (point.x  + _mapCenterShifter.x()) << ", ceil x" << std::ceil(point.x  + _mapCenterShifter.x()) <<
                     ", b ceil y:" << (point.y  + _mapCenterShifter.y()) << ", ceil y" << std::ceil(point.y  + _mapCenterShifter.y()) <<
                     ", gridX:" << gridX << ", gridY:" << gridY <<
-                    ",  mcs_X:" <<  _mapCenterShifter.x() << ",  mcs_Y:" <<  _mapCenterShifter.y() << ",  mcs_Z:" <<  _mapCenterShifter.z() << std::endl;
+                    ",  mcs_X:" <<  _mapCenterShifter.x() << ",  mcs_Y:" <<  _mapCenterShifter.y() << ",  mcs_Z:" <<  _mapCenterShifter.z() << std::endl; */
                     occupancyGrid[gridX][gridY] += 1;
                 }
             }
@@ -331,6 +331,13 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
         nstart = std::chrono::high_resolution_clock::now();
         std::cout << "Time execution recursiveCalculateNextPathPositionToGoal: " << diff.count() << std::endl;
 
+        SingletonVisualizerManager::getInstance().AddToDisplay(rob_and_dest.first, rob_and_dest.second,
+            *_parsingDataPointCloudFiltered,
+            _pointsPathToDest,
+            _refinedCurrentDetectedObject,
+            _mapDetectedObject,
+            _mapCenterShifter
+        );
 /*         if (_mapDetectedObject[0].lidarCycle % 3 == 0) {
         CommonDebugFunction::savePointCloudToFile(
                     rob_and_dest.first,
