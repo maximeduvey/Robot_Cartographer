@@ -3,6 +3,8 @@
 #include "Mapper.h"
 #include "CreationTools.h"
 
+#define DEBUG_LOG true
+#define SHOW_DEBUG_LOG if(DEBUG_LOG==true)std::cout 
 
 class MapperTest_Friend : public ::testing::Test {
 public:
@@ -33,8 +35,13 @@ public:
 
 };
 
-TEST_F(MapperTest_Friend, FillOccupancyGrid) {
+TEST_F(MapperTest_Friend, FillOccupancyGrid)
+{
     std::vector<Point> points;
+
+    MapSpatialInfos map;
+    //map.gridResolution = 1.0f;
+    _mapper.setMapInfos(map);
 
     Eigen::Vector3f pos(50.0f, 50.0f, 0.0f);
     Eigen::Vector3f size(10.0f, 10.0f, 1.0f);
@@ -55,7 +62,6 @@ TEST_F(MapperTest_Friend, FillOccupancyGrid) {
     std::vector<pcl::PointIndices> cluster_indices;
     getClusteringFilterEuclidian(cluster_indices);
 
-    MapSpatialInfos map;
     std::vector<std::vector<int>> occupancyGrid(map.grid_width, std::vector<int>(map.grid_lenght, 0));
     fillOccupancyGrid(occupancyGrid, cluster_indices);
 
@@ -67,7 +73,7 @@ TEST_F(MapperTest_Friend, FillOccupancyGrid) {
         {
             if (occupancyGrid[width][lenght] > 0)
             {
-                std::cout << "occupancyGrid["<< width <<"]["<< lenght <<"] = " << occupancyGrid[width][lenght] << std::endl;
+                SHOW_DEBUG_LOG << "occupancyGrid["<< width <<"]["<< lenght <<"] = " << occupancyGrid[width][lenght] << std::endl;
                 // between
                 EXPECT_GE(width, res_pos.x() - res_size.x());
                 EXPECT_LE(width, res_pos.x() + res_size.x());
@@ -85,22 +91,29 @@ TEST_F(MapperTest_Friend, FillOccupancyGrid) {
 
     for (const auto & obj : objs) {
         auto center = obj.get()->center;
-        std::cout << "test -- center x:" << center.x() << ", y:" << center.y() << ", z:" << center.z() << ", size:" << obj.get()->size << " -> " << std::endl;
+        SHOW_DEBUG_LOG << "test -- center x:" << center.x() << ", y:" << center.y() << ", z:" << center.z() << ", size:" << obj.get()->size << " -> " << std::endl;
         auto borders = obj.get()->getBoundingBoxCorners();
+        EXPECT_EQ(borders.size(), 8);
         int a = 0;
-        for (const auto border : borders)
+        for (const auto &border : borders)
         {
-             std::cout << a++  << " - x:" << border.x() << ", y:" << border.y() << ", z:" << border.z() << std::endl;
+            SHOW_DEBUG_LOG << a++  << " - x:" << border.x() << ", y:" << border.y() << ", z:" << border.z() << std::endl;
         }
-        EXPECT_FLOAT_EQ((pos.x() + (size.x() / 2)), center.x());
-        EXPECT_FLOAT_EQ((pos.y() + (size.y() / 2)), center.y());
-        EXPECT_NEAR((pos.z() + (size.z() / 2)), center.z(), 0.5);
+        EXPECT_NEAR((pos.x() + (size.x() / 2)), center.x(), ((size.x() * 0.5f ) / map.gridResolution) + 0.001f);
+        EXPECT_NEAR((pos.y() + (size.y() / 2)), center.y(), ((size.y() * 0.5f ) / map.gridResolution) + 0.001f);
+        EXPECT_NEAR((pos.z() + (size.z() / 2)), center.z(), ((size.z() * 0.5f ) / map.gridResolution) + 0.001f); // map.gridResolution
     }
+    auto borders = objs[0].get()->getBoundingBoxCorners();
+    auto center = borders[0];
+    EXPECT_FLOAT_EQ(center.x(), 45.0f);
+    EXPECT_FLOAT_EQ(center.y(), 45.0f);
+    EXPECT_FLOAT_EQ(center.z(), -0.5f);
 
-
-    EXPECT_TRUE(true);
+    center = objs[7];
+    EXPECT_FLOAT_EQ(center.x(), 55.0);
+    EXPECT_FLOAT_EQ(center.y(), 55.0);
+    EXPECT_FLOAT_EQ(center.z(), 0.5);
 }
-
 
 /** Infos Gtest
  * MapperTest → The test suite name (groups related tests).

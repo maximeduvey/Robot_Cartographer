@@ -30,7 +30,7 @@ Mapper::Mapper(MapSpatialInfos map /* = MapSpatialInfos() */,
     _mapCenterShifter = { map.get_grid_center_x(), map.get_grid_center_y(), 0 };
     //_mapCenterShifter = {0, 0, 0};
 
-    _enablePathFinding.store(false);
+    _enablePathFinding.store(true);
 
     // creating the radar map around the robot
     float sectorWidth = 360.0f / MAPPER_NUMBER_SECTOR_REMANENT_DATA;
@@ -122,9 +122,9 @@ void Mapper::loop_parseFieldPoints(Mapper* myself)
             for (const auto& fieldpoints : localBuffer)
             {
 
-                //if (fieldpoints.lidarCycle % 10 == 0)
-                //    myself->processLidarData(fp);
-                myself->processLidarData(fieldpoints);
+                if (fieldpoints.lidarCycle % 10 == 0)
+                    myself->processLidarData(fp);
+                //myself->processLidarData(fieldpoints);
                 
             }
         }
@@ -298,7 +298,6 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
 
     std::vector<pcl::PointIndices> cluster_indices;
     getClusteringFilterEuclidian(cluster_indices);
-
 
     // 3. Create an Occupancy Grid, really useful when we have big grid cell that can contain multiple point
     // in most lidar case we have one dot per cell

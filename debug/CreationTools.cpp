@@ -106,8 +106,8 @@ std::vector<Point> CreationTools::generateLineOfPointsForObj(const Object3D &obj
     std::vector<Point> points;
 
     // Calculate line start and end based on the object's center and size
-    Eigen::Vector3f start = obj.center - obj.size * 0.5f;
-    Eigen::Vector3f end = obj.center + obj.size * 0.5f;
+    Eigen::Vector3f start = obj.center - (obj.size * 0.5f);
+    Eigen::Vector3f end = obj.center + (obj.size * 0.5f);
 
     // Number of points along the line
     const float step = 0.5f; // Spacing between points
