@@ -7,13 +7,8 @@
  */
 
 OpenGLRenderer::OpenGLRenderer()
-    : _cameraPos(glm::vec3(0.0f, 0.0f, 3.0f)),
-    _cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)),
-    _cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)),
-    _yaw(-90.0f), _pitch(0.0f),
-    _lastX(400), _lastY(300),
-    _fov(175.0f), _firstMouse(true),
-    _mouseRotating(false)
+    : _firstMouse(true),
+      _mouseRotating(false)
 {
 
 }
@@ -98,7 +93,7 @@ void OpenGLRenderer::renderLoop()
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        glm::mat4 view = glm::lookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp);
+        glm::mat4 view = glm::lookAt(_camera.position,_camera.position + _camera.front, _camera.up);
         glMultMatrixf(&view[0][0]);
 
         // updating points
@@ -119,17 +114,17 @@ void OpenGLRenderer::renderLoop()
         int width, height;
         glfwGetFramebufferSize(_window, &width, &height);
         float aspectRatio = (float)width / (float)height;
-        gluPerspective(_fov, aspectRatio, 0.1f, 100.0f);
+        gluPerspective(_camera.fov, aspectRatio, 0.1f, 100.0f);
 
         // Display Camera Info (Top-Right Corner)
         renderText(0, height - 30,
-            "Camera Pos: (" + std::to_string(_cameraPos.x) + ", " + std::to_string(_cameraPos.y) + ", " + std::to_string(_cameraPos.z) + ")",
+            "Camera Pos: (" + std::to_string(_camera.position.x) + ", " + std::to_string(_camera.position.y) + ", " + std::to_string(_camera.position.z) + ")",
             RGB_WHITE);
         renderText(0, height - 50,
-            "Rotation (Yaw/Pitch): " + std::to_string(_yaw) + " / " + std::to_string(_pitch),
+            "Rotation (Yaw/Pitch): " + std::to_string(_camera.yaw) + " / " + std::to_string(_camera.pitch),
             RGB_WHITE);
             renderText(0, height - 70,
-                "deepness (fov): " + std::to_string(_fov),
+                "deepness (fov): " + std::to_string(_camera.fov),
                 RGB_WHITE);
 
         glfwSwapBuffers(_window);
@@ -161,30 +156,34 @@ void OpenGLRenderer::processInput() {
     bool moved = false;
 
     // Get the right vector for left/right movement
-    glm::vec3 right = glm::normalize(glm::cross(_cameraFront, _cameraUp));
+    glm::vec3 right = glm::normalize(glm::cross(_camera.front, _camera.up));
 
     if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS) {
-        _cameraPos += cameraSpeed * _cameraUp;  // ✅ Move UP along world Y-axis
+        _camera.position += cameraSpeed * _camera.up;  // ✅ Move UP along world Y-axis
         moved = true;
     }
     if (glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS) {
-        _cameraPos -= cameraSpeed * _cameraUp;  // ✅ Move DOWN along world Y-axis
+        _camera.position -= cameraSpeed * _camera.up;  // ✅ Move DOWN along world Y-axis
         moved = true;
     }
     if (glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS) {
-        _cameraPos -= cameraSpeed * right;  // ✅ Move LEFT in the XZ plane
+        _camera.position -= cameraSpeed * right;  // ✅ Move LEFT in the XZ plane
         moved = true;
     }
     if (glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS) {
-        _cameraPos += cameraSpeed * right;  // ✅ Move RIGHT in the XZ plane
+        _camera.position += cameraSpeed * right;  // ✅ Move RIGHT in the XZ plane
+        moved = true;
+    }
+    if (glfwGetKey(_window, GLFW_KEY_R) == GLFW_PRESS) {  // ✅ Reset camera to initial state
+        _camera.reset();
         moved = true;
     }
 
     if (moved) {
         std::cout << "[Camera] Position: ("
-            << _cameraPos.x << ", "
-            << _cameraPos.y << ", "
-            << _cameraPos.z << ")\n";
+            <<_camera.position.x << ", "
+            <<_camera.position.y << ", "
+            <<_camera.position.z << ")\n";
     }
 }
 
@@ -197,43 +196,43 @@ void OpenGLRenderer::mouseCallback(GLFWwindow* window, double xpos, double ypos)
     if (!renderer->_mouseRotating) return; // Only rotate when middle mouse is pressed
 
     if (renderer->_firstMouse) {
-        renderer->_lastX = xpos;
-        renderer->_lastY = ypos;
+        renderer->_camera.lastX = xpos;
+        renderer->_camera.lastY = ypos;
         renderer->_firstMouse = false;
     }
 
-    float xOffset = xpos - renderer->_lastX;
-    float yOffset = renderer->_lastY - ypos; // Reversed y-axis
-    renderer->_lastX = xpos;
-    renderer->_lastY = ypos;
+    float xOffset = xpos - renderer->_camera.lastX;
+    float yOffset = renderer->_camera.lastY - ypos; // Reversed y-axis
+    renderer->_camera.lastX = xpos;
+    renderer->_camera.lastY = ypos;
 
     const float sensitivity = OPENGLRENDERER_MOUSE_SENSITIVITY;
     xOffset *= sensitivity;
     yOffset *= sensitivity;
 
-    renderer->_yaw += xOffset;
-    renderer->_pitch += yOffset;
+    renderer->_camera.yaw += xOffset;
+    renderer->_camera.pitch += yOffset;
 
-    if (renderer->_pitch > OPENGLRENDERER_MAX_PITCH) renderer->_pitch = OPENGLRENDERER_MAX_PITCH;
-    if (renderer->_pitch < -OPENGLRENDERER_MAX_PITCH) renderer->_pitch = -OPENGLRENDERER_MAX_PITCH;
+    if (renderer->_camera.pitch > OPENGLRENDERER_MAX_PITCH) renderer->_camera.pitch = OPENGLRENDERER_MAX_PITCH;
+    if (renderer->_camera.pitch < -OPENGLRENDERER_MAX_PITCH) renderer->_camera.pitch = -OPENGLRENDERER_MAX_PITCH;
 
     glm::vec3 front;
-    front.x = cos(glm::radians(renderer->_yaw)) * cos(glm::radians(renderer->_pitch));
-    front.y = sin(glm::radians(renderer->_pitch));
-    front.z = sin(glm::radians(renderer->_yaw)) * cos(glm::radians(renderer->_pitch));
-    renderer->_cameraFront = glm::normalize(front);
+    front.x = cos(glm::radians(renderer->_camera.yaw)) * cos(glm::radians(renderer->_camera.pitch));
+    front.y = sin(glm::radians(renderer->_camera.pitch));
+    front.z = sin(glm::radians(renderer->_camera.yaw)) * cos(glm::radians(renderer->_camera.pitch));
+    renderer->_camera.front = glm::normalize(front);
 
-    std::cout << "[Camera] Rotating: Yaw=" << renderer->_yaw << " | Pitch=" << renderer->_pitch << std::endl;
+    std::cout << "[Camera] Rotating: Yaw=" << renderer->_camera.yaw << " | Pitch=" << renderer->_camera.pitch << std::endl;
 }
 
 
 void OpenGLRenderer::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
     OpenGLRenderer* renderer = static_cast<OpenGLRenderer*>(glfwGetWindowUserPointer(window));
-    renderer->_fov -= (float)yoffset;
-    if (renderer->_fov < OPENGLRENDERER_MIN_ZOOM_OUT) renderer->_fov = OPENGLRENDERER_MIN_ZOOM_OUT;
-    if (renderer->_fov > OPENGLRENDERER_MAX_ZOOM_OUT) renderer->_fov = OPENGLRENDERER_MAX_ZOOM_OUT;
+    renderer->_camera.fov -= (float)yoffset;
+    if (renderer->_camera.fov < OPENGLRENDERER_MIN_ZOOM_OUT) renderer->_camera.fov = OPENGLRENDERER_MIN_ZOOM_OUT;
+    if (renderer->_camera.fov > OPENGLRENDERER_MAX_ZOOM_OUT) renderer->_camera.fov = OPENGLRENDERER_MAX_ZOOM_OUT;
 
-    std::cout << "[Camera] FOV (Zoom): " << renderer->_fov << std::endl;
+    std::cout << "[Camera] FOV (Zoom): " << renderer->_camera.fov << std::endl;
 }
 
 // #

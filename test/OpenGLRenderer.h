@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CommonSpaceRepresentation.h>
+#include "CameraState.h"
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -26,6 +27,7 @@
 #define OPENGLRENDERER_CAM_SPEED 0.5f
 
 #define OPENGLRENDERER_MAX_PITCH 89.0f
+
 
 class OpenGLRenderer {
 public:
@@ -71,13 +73,14 @@ private:
     std::mutex _mutexVectorPoints;
     std::vector<RGBPoint> _points;
 
+    CameraState _camera;
     // Camera settings
-    glm::vec3 _cameraPos ={0,0,50};
+/*     glm::vec3 _cameraPos ={0,0,50};
     glm::vec3 _cameraFront={0,0,0};
     glm::vec3 _cameraUp={0,0,0};
     float _yaw = 0, _pitch = 0;
     float _lastX = 0, _lastY = 0;
-    float _fov = 175.0f;
+    float _fov = 175.0f; */
     bool _firstMouse = 0;
 
     bool _mouseRotating;
