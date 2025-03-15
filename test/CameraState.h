@@ -52,6 +52,10 @@ public:
         lastX = state.lastX;
         lastY = state.lastY;
     }
+
+    void addShifter(float x, float y, float z) {
+        position += glm::vec3(x,y,z);
+    }
     
     CameraState& operator=(const CameraState& state) {
         if (this != &state) {  // Prevent self-assignment

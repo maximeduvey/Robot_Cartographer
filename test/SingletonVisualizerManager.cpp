@@ -28,6 +28,12 @@ void SingletonVisualizerManager::start()
 
 }
 
+void SingletonVisualizerManager::addShifterToViewer(const Eigen::Vector3f& destination)
+{
+    std::lock_guard<std::mutex> lock(viewerMutex);
+    _viewer.get()->addShifterToViewer(destination);
+}
+
 void SingletonVisualizerManager::AddToDisplay(
     const Object3D& robot,
     const Eigen::Vector3f& destination,
@@ -44,8 +50,8 @@ void SingletonVisualizerManager::AddToDisplay(
     _viewer.get()->addObjectToView((robot + shifter), RGB_ORANGE);
     _viewer.get()->addPointToView(shifter, RGB_YELLOW);
     _viewer.get()->addPointToView(tmp, RGB_YELLOW);
-    _viewer.get()->addPointsToView(cloud, RGB_WHITE);
-    _viewer.get()->addPointsToView(pathPoints, RGB_GREEN);
+    _viewer.get()->addPointsToView(cloud, RGB_WHITE, shifter);
+    _viewer.get()->addPointsToView(pathPoints, RGB_GREEN, shifter);
     //_viewer.get()->addPointsToView(refinedCurrentDetectedObjec, RGB_PURPLE);
     for (const auto &sector : mapDetectedObject) {
         for (const std::shared_ptr<Object3D> &obj : sector._detectedObjects) {

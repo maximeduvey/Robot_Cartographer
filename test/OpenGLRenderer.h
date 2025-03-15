@@ -54,15 +54,16 @@ public:
 
     void addPointToView(const RGBPoint& point);
     void addPointToView(const Eigen::Vector3f& point, float r, float g, float b);
-    void addPointsToView(const std::vector<RGBPoint>& points);
-    void addPointsToView(const pcl::PointCloud<pcl::PointXYZ>& cloud, float r=1.0f, float g=1.0f, float b=1.0f);
-    void addPointsToView(const std::vector<Eigen::Vector3f>& pathPoints, float r=1.0f, float g=1.0f, float b=1.0f);
-    void addPointsToView(const std::vector<Point>& points, float r=1.0f, float g=1.0f, float b=1.0f);
+    void addPointsToView(const std::vector<RGBPoint>& points, const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
+    void addPointsToView(const pcl::PointCloud<pcl::PointXYZ>& cloud, float r=1.0f, float g=1.0f, float b=1.0f, const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
+    void addPointsToView(const std::vector<Eigen::Vector3f>& pathPoints, float r=1.0f, float g=1.0f, float b=1.0f, const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
+    void addPointsToView(const std::vector<Point>& points, float r=1.0f, float g=1.0f, float b=1.0f, const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
     void addPointsToView(const Point &point, float r=1.0f, float g=1.0f, float b=1.0f);
     void addObjectToView(const Object3D& obj, float r=1.0f, float g=1.0f, float b=1.0f);
     void addObjectsToView(const std::vector<Object3D>& objs, const Eigen::Vector3f shifter, float r=1.0f, float g=1.0f, float b=1.0f);
     void clear();
 
+    void addShifterToViewer(const Eigen::Vector3f& shifer);
 
     std::vector<Eigen::Vector3f> generateTestPointCloud();
 private:
@@ -74,13 +75,6 @@ private:
     std::vector<RGBPoint> _points;
 
     CameraState _camera;
-    // Camera settings
-/*     glm::vec3 _cameraPos ={0,0,50};
-    glm::vec3 _cameraFront={0,0,0};
-    glm::vec3 _cameraUp={0,0,0};
-    float _yaw = 0, _pitch = 0;
-    float _lastX = 0, _lastY = 0;
-    float _fov = 175.0f; */
     bool _firstMouse = 0;
 
     bool _mouseRotating;

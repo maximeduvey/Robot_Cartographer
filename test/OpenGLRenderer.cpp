@@ -235,6 +235,12 @@ void OpenGLRenderer::scrollCallback(GLFWwindow* window, double xoffset, double y
     std::cout << "[Camera] FOV (Zoom): " << renderer->_camera.fov << std::endl;
 }
 
+
+void OpenGLRenderer::addShifterToViewer(const Eigen::Vector3f& shifer)
+{
+    _camera.addShifter(shifer.x(),shifer.y(),shifer.z());
+}
+
 // #
 // #
 // #
@@ -287,12 +293,12 @@ void OpenGLRenderer::renderText(float x, float y, const std::string& text, float
 // # classic other class to points
 // #
 
-void OpenGLRenderer::addPointsToView(const pcl::PointCloud<pcl::PointXYZ>& cloud, float r, float g, float b) {
+void OpenGLRenderer::addPointsToView(const pcl::PointCloud<pcl::PointXYZ>& cloud, float r, float g, float b, const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */) {
     std::lock_guard<std::mutex> lock(_mutexVectorPoints);
 
     for (const auto& p : cloud.points) {
         RGBPoint point;
-        point.pos = Eigen::Vector3f(p.x, p.y, p.z);
+        point.pos = Eigen::Vector3f(p.x, p.y, p.z) + shifter;
         point.distance = static_cast<uint16_t>(p.getVector3fMap().norm());
         point.color = Eigen::Vector3f(r, g, b);
         _points.push_back(point);
@@ -305,11 +311,14 @@ void OpenGLRenderer::addPointToView(const RGBPoint& point)
     _points.push_back(point);
 }
 
-void OpenGLRenderer::addPointsToView(const std::vector<RGBPoint>& points)
+void OpenGLRenderer::addPointsToView(const std::vector<RGBPoint>& points, const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
     std::lock_guard<std::mutex> lock(_mutexVectorPoints);
-    for (const auto& point : points)
+    for (auto point : points)
+    {
+        point.pos += shifter;
         _points.push_back(point);
+    }
 }
 
 void OpenGLRenderer::addPointToView(const Eigen::Vector3f& point, float r, float g, float b)
@@ -319,22 +328,23 @@ void OpenGLRenderer::addPointToView(const Eigen::Vector3f& point, float r, float
 }
 
 
-void OpenGLRenderer::addPointsToView(const std::vector<Point>& points, float r, float g, float b)
+void OpenGLRenderer::addPointsToView(const std::vector<Point>& points, float r, float g, float b, const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
 {
     std::lock_guard<std::mutex> lock(_mutexVectorPoints);
 
     std::transform(points.begin(), points.end(), std::back_inserter(_points),
         [&](const Point& p) {
-            return RGBPoint{ p.pos, Eigen::Vector3f(r, g, b)};
+            return RGBPoint{ p.pos+shifter, Eigen::Vector3f(r, g, b)};
         });
 }
 
-void OpenGLRenderer::addPointsToView(const std::vector<Eigen::Vector3f>& pathPoints, float r, float g, float b) {
+void OpenGLRenderer::addPointsToView(const std::vector<Eigen::Vector3f>& pathPoints, float r, float g, float b, const Eigen::Vector3f shifter /* = {0.0f, 0.0f, 0.0f} */)
+{
     std::lock_guard<std::mutex> lock(_mutexVectorPoints);
 
     for (const auto& p : pathPoints) {
         RGBPoint point;
-        point.pos = p;
+        point.pos = p+shifter;
         point.color = Eigen::Vector3f(r, g, b);
         _points.push_back(point);
     }
@@ -360,7 +370,7 @@ void OpenGLRenderer::addObjectsToView(const std::vector<Object3D>& objs, const E
         const auto corners = obj.getBoundingBoxCorners(shifter);
         for (int i = 0; i < corners.size(); i++) {
             RGBPoint point;
-            point.pos = corners[i];
+            point.pos = corners[i] + shifter;
             point.color = Eigen::Vector3f(r, g, b);
             _points.push_back(point);
         }

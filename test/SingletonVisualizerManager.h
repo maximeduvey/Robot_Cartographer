@@ -34,6 +34,7 @@ public:
         const std::vector<SectorConeOfVision> &mapDetectedObject,
         const Eigen::Vector3f shifter = {0.0f, 0.0f, 0.0f});
 
+        void addShifterToViewer(const Eigen::Vector3f& destination);
 private:
     // Private constructor for singleton
     SingletonVisualizerManager() {}

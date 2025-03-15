@@ -59,6 +59,7 @@ void Mapper::startDataParsing()
 {
     std::cout << TAG << std::endl;
     _end.store(false);
+    SingletonVisualizerManager::getInstance().addShifterToViewer(_mapCenterShifter);
     _parserData = std::thread(&Mapper::loop_parseFieldPoints, this);
     _parserData.detach();
 }
