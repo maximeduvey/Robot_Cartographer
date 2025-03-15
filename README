@@ -6,7 +6,16 @@
 ### git@github.com:maximeduvey/Robot_Core.git   ###
 ###################################################
  
+
+sudo apt-get install \
+                libncurses5-dev libncursesw5-dev libgtest-dev libglew-dev libpcl-dev \
+                libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+                libglfw3-dev libglew-dev pkg-config libglm-dev
+
+
+
 # apt install
+### this is outdated, please try to remove vtk from the compilation we use opengl now for data visualizer
 sudo apt-get install libvtk7-dev libglew-dev libpcl-dev
 
 sudo apt-get install libncurses5-dev libncursesw5-dev
@@ -29,7 +38,7 @@ sudo apt-get install libpcap-dev
 sudo apt-get install freeglut3-dev
 sudo apt-get install libboost-all-dev
 
-
+### this is outdated, please try to remove vtk from the compilation we use opengl now for data visualizer
 git submodule add https://github.com/PointCloudLibrary/pcl.git
 cd pcl
 mkdir build && cd build

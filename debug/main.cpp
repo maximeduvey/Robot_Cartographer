@@ -1,8 +1,6 @@
 
 #include <Mapper.h>
 
-#include "CommonDebugFunction.h"
-
 #include "CreationTools.h"
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -14,6 +12,11 @@
 
 MapSpatialInfos msi(200, 300, 1);
 Mapper map(msi);
+
+
+/// WARNING MAIN is no longer functionnal as standalone, and should be replaced by gtest
+/// WARNING MAIN is no longer functionnal as standalone, and should be replaced by gtest
+/// WARNING MAIN is no longer functionnal as standalone, and should be replaced by gtest
 
 void addPointCloudToVisualizer()
 {
@@ -34,7 +37,7 @@ void addPointCloudToVisualizer()
     cloud->height = 1; // Unorganized point cloud
     cloud->is_dense = true;
 
-    SingletonVisualizerManager::getInstance().updatePointCloud(cloud, "calculated cloud");
+    //SingletonVisualizerManager::getInstance().updatePointCloud(cloud, "calculated cloud");
 }
 
 void addData()
@@ -70,7 +73,7 @@ void updateVisual()
         map.getRefinedCurrentDetectedObject(),
         "objectAndPath", -map._mapCenterShifter); */
     (&map)->_mutexIsParsingData.unlock();
-    SingletonVisualizerManager::getInstance().spinOnce(1);
+    //SingletonVisualizerManager::getInstance().spinOnce(1);
     
 }
 
@@ -79,7 +82,7 @@ int main()
     std::cout << TAG << std::endl;
     auto vec = CreationTools::generateTestPoints();
 
-    SingletonVisualizerManager::getInstance().initialize();
+    /* SingletonVisualizerManager::getInstance().initialize();
 
     map.startDataParsing();
 
@@ -99,13 +102,6 @@ int main()
     {
         updateVisual();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    }
-    return 0;
-}
-
-int main_test() {
-    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("Viewer"));
-    viewer->addCoordinateSystem(1.0);
-    viewer->spinOnce(1, true);
+    } */
     return 0;
 }

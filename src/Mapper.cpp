@@ -91,12 +91,10 @@ void Mapper::setNoiseFilterNbrCorelationPoint(int nbr)
 /// otherwise a overflow will happen
 void Mapper::loop_parseFieldPoints(Mapper* myself)
 {
-
     std::cout << TAG << std::endl;
     while (myself->_end.load() != true)
     {
         std::vector<FieldPoints> localBuffer;
-        // Lock, swap, and release quickly
         {
             std::lock_guard<std::mutex> lock(myself->_mutextDataToParse);
             if (!myself->_dataToParse.empty()) {
@@ -106,7 +104,6 @@ void Mapper::loop_parseFieldPoints(Mapper* myself)
         }
         if (!localBuffer.empty())
         {
-            //std::cout << TAG << "_dataToParse contain:" << localBuffer.size() << std::endl;
             for (const auto& fieldpoints : localBuffer)
             {
                 myself->processLidarData(fieldpoints);
@@ -116,26 +113,6 @@ void Mapper::loop_parseFieldPoints(Mapper* myself)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(MAPPER_DEFAULT_WAITING_TIME_PARSER_EMPTY_LIST));
         }
-
-        /*         myself->_mutextDataToParse.lock();
-                auto nbr = myself->_dataToParse.size();
-                myself->_mutextDataToParse.unlock();
-                if (nbr > 0)
-                {
-                    myself->_mutextDataToParse.lock();
-                    std::cout << TAG << "_dataToParse contain:" << myself->_dataToParse.size() << std::endl;
-                    for (const auto& fieldpoints : myself->_dataToParse)
-                    {
-                        myself->processLidarData(fieldpoints);
-                    }
-                    myself->_dataToParse.clear();
-                    std::cout << TAG << "after" << myself->_dataToParse.size() << std::endl;
-                    myself->_mutextDataToParse.unlock();
-                }
-                else
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(MAPPER_DEFAULT_WAITING_TIME_PARSER_EMPTY_LIST));
-                } */
     }
 }
 

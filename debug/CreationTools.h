@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Mapper.h"
-#include "CommonDebugFunction.h"
 
 class CreationTools
 {
