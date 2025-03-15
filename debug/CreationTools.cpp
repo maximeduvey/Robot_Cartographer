@@ -1,5 +1,9 @@
 #include "CreationTools.h"
 
+
+///
+/// generate a simple cube with :
+/// points.insert(generateCloudOfPointsForObj( Object3D{pos, size}));
 std::vector<Point> CreationTools::generateTestPoints(Eigen::Vector3f decalage /* = {0.0f, 0.0f, 0.0f} */)
 {
     std::vector<Point> points;

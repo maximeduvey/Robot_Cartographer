@@ -12,6 +12,7 @@
 
 #include <SingletonVisualizerManager.h>
 #include <SingletonGameState.h>
+#include <CreationTools.h>
 
 #define AABB_LOG_DEBUG false
 
@@ -91,6 +92,20 @@ void Mapper::setNoiseFilterNbrCorelationPoint(int nbr)
 /// otherwise a overflow will happen
 void Mapper::loop_parseFieldPoints(Mapper* myself)
 {
+    std::vector<Point> points;
+
+    Eigen::Vector3f pos(50.0f, 50.0f, 0.0f);
+    Eigen::Vector3f size(10.0f, 10.0f, 1.0f);
+    // cube
+    auto pt = CreationTools::generateCloudOfPointsForObj(Object3D{ pos, size });
+    points.insert(points.end(), pt.begin(), pt.end());
+    
+    FieldPoints fp;
+    fp.lidarCycle = 1;
+    fp.start_angle = 0.0f;
+    fp.end_angle = 15.0f;
+    fp.points = points;
+
     std::cout << TAG << std::endl;
     while (myself->_end.load() != true)
     {
@@ -106,7 +121,11 @@ void Mapper::loop_parseFieldPoints(Mapper* myself)
         {
             for (const auto& fieldpoints : localBuffer)
             {
+
+                //if (fieldpoints.lidarCycle % 10 == 0)
+                //    myself->processLidarData(fp);
                 myself->processLidarData(fieldpoints);
+                
             }
         }
         else
@@ -199,7 +218,63 @@ std::chrono::duration<double, std::milli> get_time_diff(
     return endtime - starttime;  // No need for explicit duration conversion
 }
 
+void Mapper::fillOccupancyGrid( std::vector<std::vector<int>>& occupancyGrid,
+                                const std::vector<pcl::PointIndices> &cluster_indices,
+                                const pcl::PointCloud<pcl::PointXYZ>::Ptr &parsingDataPointCloudFiltered
+                            )
+{
+    for (const auto& cluster : cluster_indices)
+    {
+        for (const int& index : cluster.indices)
+        {
+            pcl::PointXYZ point = parsingDataPointCloudFiltered->points[index];
 
+            // Convert point coordinates to grid indices
+            int gridX = static_cast<int>(std::ceil((point.x) / _map.gridResolution));
+            int gridY = static_cast<int>(std::ceil((point.y) / _map.gridResolution));
+
+            // Check bounds before writing to the grid
+            if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
+            {
+                /*                     std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
+                ", b ceil x:" << (point.x  ) << ", ceil x" << std::ceil(point.x) <<
+                ", b ceil y:" << (point.y  ) << ", ceil y" << std::ceil(point.y) <<
+                ", gridX:" << gridX << ", gridY:" << gridY <<
+                std::endl; */
+                occupancyGrid[gridX][gridY] += 1;
+            }
+        }
+    }
+}
+
+/// will fill the _parsingDataPointCloudFiltered with a filtered cloud points defined principaly by the MAPPER_CLOUD_POINT_FILTERING_THRESHOLD
+void Mapper::getNoiseFilteredPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) 
+{
+    // 1. Noise Filtering using Statistical Outlier Removal
+    _parsingDataPointCloudFiltered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+    sor.setInputCloud(cloud);
+    sor.setMeanK(_noiseFilter_nbrCorelationPoint.load()); // Set number of neighbors to analyze
+    sor.setStddevMulThresh(1.0);                          // Threshold for outliers
+    sor.filter(*_parsingDataPointCloudFiltered);
+}
+
+// 2. Clustering (filter) using Euclidean Cluster Extraction
+void Mapper::getClusteringFilterEuclidian(std::vector<pcl::PointIndices> &cluster_indices)
+{
+    // 2. Clustering (filter) using Euclidean Cluster Extraction
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+    tree->setInputCloud(_parsingDataPointCloudFiltered);
+
+    std::cout << "Before filter : cloud_filtered.size : " << _parsingDataPointCloudFiltered->size() << std::endl;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance(MAPPER_GRID_RESOLUTION_CLUSTER_DISTANCE_TOLERANCE);   // Distance tolerance for clustering
+    ec.setMinClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_POINT);     // Minimum number of points for a valid cluster
+    ec.setMaxClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_NUMBER_TOLERANCE); // Maximum number of points per cluster
+    ec.setSearchMethod(tree);
+    ec.setInputCloud(_parsingDataPointCloudFiltered);
+    ec.extract(cluster_indices);
+}
 
 /// @brief this function will basically noise filter the data and fill occupancyGrid
 /// @param lidarPoints
@@ -208,42 +283,21 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
     auto starttime = std::chrono::high_resolution_clock::now();
     _mutexIsParsingData.lock();
     // Convert lidar data to PCL point cloud
-    _parsingDataPointCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
-    *_parsingDataPointCloud = convertToPCLCloud(lidarPoints.points);
+    auto parsingDataPointCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
+    *parsingDataPointCloud = convertToPCLCloud(lidarPoints.points);
 
     auto diff = get_time_diff(starttime);
     auto nstart = std::chrono::high_resolution_clock::now();
     std::cout << "Time execution convertToPCLCloud: " << diff.count() << std::endl;
 
-    // 1. Noise Filtering using Statistical Outlier Removal
-    _parsingDataPointCloudFiltered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-    sor.setInputCloud(_parsingDataPointCloud);
-    sor.setMeanK(_noiseFilter_nbrCorelationPoint.load()); // Set number of neighbors to analyze
-    sor.setStddevMulThresh(1.0);                          // Threshold for outliers
-    sor.filter(*_parsingDataPointCloudFiltered);
+    getNoiseFilteredPointCloud(parsingDataPointCloud);
 
     diff = get_time_diff(nstart);
     nstart = std::chrono::high_resolution_clock::now();
     std::cout << "Time execution setMeanK: " << diff.count() << std::endl;
 
-    // 2. Clustering (filter) using Euclidean Cluster Extraction
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
-    tree->setInputCloud(_parsingDataPointCloudFiltered);
-
-    std::cout << "Before filter : cloud_filtered.size : " << _parsingDataPointCloudFiltered->size() << std::endl;
     std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance(MAPPER_GRID_RESOLUTION_CLUSTER_DISTANCE_TOLERANCE);   // Distance tolerance for clustering
-    ec.setMinClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_POINT);     // Minimum number of points for a valid cluster
-    ec.setMaxClusterSize(MAPPER_GRID_RESOLUTION_CLUSTER_NUMBER_TOLERANCE); // Maximum number of points per cluster
-    ec.setSearchMethod(tree);
-    ec.setInputCloud(_parsingDataPointCloudFiltered);
-    ec.extract(cluster_indices);
-
-    //diff = get_time_diff(nstart);
-    //nstart = std::chrono::high_resolution_clock::now();
-    //std::cout << "Time execution setClusterTolerance: " << diff.count() << std::endl;
+    getClusteringFilterEuclidian(cluster_indices);
 
 
     // 3. Create an Occupancy Grid, really useful when we have big grid cell that can contain multiple point
@@ -251,31 +305,9 @@ void Mapper::processLidarData(const FieldPoints& lidarPoints)
     std::cout << "cluster_indices.size : " << cluster_indices.size() << std::endl;
     if (cluster_indices.size() > 0)
     {
-        std::vector<std::vector<int>> occupancyGrid(_map.grid_width,
-                                   std::vector<int>(_map.grid_lenght, 0));
-        for (const auto& cluster : cluster_indices)
-        {
-            for (const int& index : cluster.indices)
-            {
-                pcl::PointXYZ point = _parsingDataPointCloudFiltered->points[index];
-
-                // Convert point coordinates to grid indices
-                int gridX = static_cast<int>(std::ceil((point.x  + _mapCenterShifter.x()) / _map.gridResolution));
-                int gridY = static_cast<int>(std::ceil((point.y + _mapCenterShifter.y()) / _map.gridResolution));
-
-                // Check bounds before writing to the grid
-                if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
-                {
-/*                     std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
-                    ", b ceil x:" << (point.x  + _mapCenterShifter.x()) << ", ceil x" << std::ceil(point.x  + _mapCenterShifter.x()) <<
-                    ", b ceil y:" << (point.y  + _mapCenterShifter.y()) << ", ceil y" << std::ceil(point.y  + _mapCenterShifter.y()) <<
-                    ", gridX:" << gridX << ", gridY:" << gridY <<
-                    ",  mcs_X:" <<  _mapCenterShifter.x() << ",  mcs_Y:" <<  _mapCenterShifter.y() << ",  mcs_Z:" <<  _mapCenterShifter.z() << std::endl; */
-                    occupancyGrid[gridX][gridY] += 1;
-                }
-            }
-        }
-
+        std::vector<std::vector<int>> occupancyGrid(_map.grid_width, std::vector<int>(_map.grid_lenght, 0));
+        
+        fillOccupancyGrid(occupancyGrid, cluster_indices, _parsingDataPointCloudFiltered);
 
         diff = get_time_diff(nstart);
         nstart = std::chrono::high_resolution_clock::now();

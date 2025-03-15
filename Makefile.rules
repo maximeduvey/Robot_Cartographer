@@ -61,6 +61,7 @@ ROBOT_CARTOGRAPHER_SRC_FILES := \
     $(ROBOT_CORE_SRC_FILES) \
     $(wildcard $(ROBOT_CARTOGRAPHER_SRC_DIR)/Mapper.cpp) \
     $(wildcard $(ROBOT_CARTOGRAPHER_DEBUG_DIR)/Common*.cpp) \
+    $(wildcard $(ROBOT_CARTOGRAPHER_DEBUG_DIR)/CreationTools.cpp) \
     $(wildcard $(ROBOT_CARTOGRAPHER_DEBUG_DIR)/Singleton*.cpp) \
     $(ROBOT_CARTOGRAPHER_DEBUG_DIR)/OpenGLRenderer.cpp \
     $(wildcard $(ROBOT_CARTOGRAPHER_SRC_DIR)/$(ROBOT_CARTOGRAPHER_DATA_DIR)/*.cpp)

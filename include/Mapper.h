@@ -69,6 +69,8 @@ inline int getObjectNewId()
 ///
 class Mapper
 {
+    friend class MapperTest_Friend;
+
 private:
     struct Node
     {
@@ -134,13 +136,13 @@ public:
     std::vector<std::shared_ptr<Object3D>> getRefinedCurrentDetectedObject();
     std::vector<std::shared_ptr<Object3D>> getRefinedLastDetectedObject();
 
+    pcl::PointCloud<pcl::PointXYZ> convertToPCLCloud(const std::vector<Point> &lidarPoints);
 private:
     static void loop_parseFieldPoints(Mapper *myself);
 
     void parsePointToMap_pointsAreRelativeToRobot(const Point &point);
     void parsePointToMap_pointsAreAbsolute(const Point &point);
 
-    pcl::PointCloud<pcl::PointXYZ> convertToPCLCloud(const std::vector<Point> &lidarPoints);
     bool checkCollision(const Eigen::Vector2f &robotPos, const Eigen::Vector3f &robotSize, const Object3D &object);
 
     static Eigen::Vector3f getCollidingNextPositionCloserBorderLogic(const RobotSpatialInfos &robot,
@@ -166,6 +168,16 @@ private:
     void enablePathFinding(bool val);
     bool isPathFindingEnabled();
     std::vector<SectorConeOfVision*> getRelevantSectors(uint16_t start_angle, uint16_t end_angle);
+
+    
+    void fillOccupancyGrid(
+        std::vector<std::vector<int>>& occupancyGrid,
+        const std::vector<pcl::PointIndices> &cluster_indices,
+        const pcl::PointCloud<pcl::PointXYZ>::Ptr &parsingDataPointCloudFiltered
+    );
+    
+    void getNoiseFilteredPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
+    void getClusteringFilterEuclidian(std::vector<pcl::PointIndices> &cluster_indices);
 
 public:
     float _startAngleManaged;
@@ -208,7 +220,7 @@ public:
     
     /// internal storage data that can be set to be keeped for debugging ///
     std::mutex _mutexIsParsingData;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr _parsingDataPointCloud = nullptr;//(new pcl::PointCloud<pcl::PointXYZ>());
+    //pcl::PointCloud<pcl::PointXYZ>::Ptr _parsingDataPointCloud = nullptr;//(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr _parsingDataPointCloudFiltered = nullptr;//(new pcl::PointCloud<pcl::PointXYZ>());
 
     
@@ -227,6 +239,4 @@ private:
     std::mutex _mutexPointsPathToDest;
     std::vector<Eigen::Vector3f> _pointsPathToDest;
 
-
-    
 };
