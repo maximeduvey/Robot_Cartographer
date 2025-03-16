@@ -80,11 +80,14 @@ std::vector<Point> CreationTools::generateCloudOfPointsForObj(const Object3D &ob
     std::vector<Point> points;
 
     // Calculate boundaries
-    Eigen::Vector3i minCorner = (obj.center - obj.size * 0.5f).array().floor().cast<int>();
-    Eigen::Vector3i maxCorner = (obj.center + obj.size * 0.5f).array().ceil().cast<int>();
+    Eigen::Vector3i minCorner = (obj.center - (obj.size * 0.5f)).array().floor().cast<int>();
+    Eigen::Vector3i maxCorner = (obj.center + (obj.size * 0.5f)).array().ceil().cast<int>();
 
     // Iterate over the bounding box and generate points
 
+    std::cout << "Will create obj cloud of point from minCorner:" << minCorner.x() << ", " << minCorner.y() << ", " << minCorner.z() 
+    << " to maxCorner:" << maxCorner.x() << ", " << maxCorner.y() << ", " << maxCorner.z() 
+    << std::endl;
     for (float x = minCorner.x(); x <= maxCorner.x(); x += 0.5f)
     {
         for (float y = minCorner.y(); y <= maxCorner.y(); y += 0.5f)

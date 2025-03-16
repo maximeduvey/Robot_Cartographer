@@ -122,9 +122,9 @@ void Mapper::loop_parseFieldPoints(Mapper* myself)
             for (const auto& fieldpoints : localBuffer)
             {
 
-                if (fieldpoints.lidarCycle % 10 == 0)
-                    myself->processLidarData(fp);
-                //myself->processLidarData(fieldpoints);
+                //if (fieldpoints.lidarCycle % 10 == 0)
+                //    myself->processLidarData(fp);
+                myself->processLidarData(fieldpoints);
                 
             }
         }
@@ -230,13 +230,13 @@ void Mapper::fillOccupancyGrid( std::vector<std::vector<int>>& occupancyGrid,
             pcl::PointXYZ point = parsingDataPointCloudFiltered->points[index];
 
             // Convert point coordinates to grid indices
-            int gridX = static_cast<int>(std::ceil((point.x) / _map.gridResolution));
-            int gridY = static_cast<int>(std::ceil((point.y) / _map.gridResolution));
+            int gridX = static_cast<int>((point.x / _map.gridResolution) + _mapCenterShifter.x());
+            int gridY = static_cast<int>((point.y / _map.gridResolution) + _mapCenterShifter.y());
 
             // Check bounds before writing to the grid
             if (gridX >= 0 && gridX < _map.grid_width && gridY >= 0 && gridY < _map.grid_lenght)
             {
-                /*                     std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
+/*                 std::cout << TAG << "point.x:" << point.x << ", point.y:" << point.y <<
                 ", b ceil x:" << (point.x  ) << ", ceil x" << std::ceil(point.x) <<
                 ", b ceil y:" << (point.y  ) << ", ceil y" << std::ceil(point.y) <<
                 ", gridX:" << gridX << ", gridY:" << gridY <<
@@ -438,13 +438,21 @@ std::vector<std::shared_ptr<Object3D>> Mapper::refineMapToObjects(const std::vec
                 int minX = rows, maxX = 0, minY = cols, maxY = 0;
                 for (const auto& [cx, cy] : clusterCells)
                 {
+                    // we add +1 to mark that the entiere grid pos is occupied, for example
+                    // [0,0,0] is heavealy occupied, we nee to mark that from [0,0,0] to [1,1,1] is occupied
+                    // resulting in a center [0.5, 0.5, 0.5] otherwise we have a swift
                     minX = std::min(minX, cx);
-                    maxX = std::max(maxX, cx);
+                    maxX = std::max(maxX, cx + 1);
                     minY = std::min(minY, cy);
-                    maxY = std::max(maxY, cy);
+                    maxY = std::max(maxY, cy + 1);
                     std::cout << "CLUSTER CELLS cx:" << cx << ", cy:" << cy << std::endl;
+                    // the difficult now is we have to manage that an object reaching to a pos does not mean it occupy that pos
                 }
 
+                minX -= _mapCenterShifter.x();
+                maxX -= _mapCenterShifter.x();
+                minY -= _mapCenterShifter.y();
+                maxY -= _mapCenterShifter.y();
                 float centerX = ((minX + maxX) / 2.0f);
                 float centerY = ((minY + maxY) / 2.0f);
                 float length = (maxX - minX) ;
