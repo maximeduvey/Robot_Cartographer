@@ -10,7 +10,7 @@
 sudo apt-get install \
                 libncurses5-dev libncursesw5-dev libgtest-dev libglew-dev libpcl-dev \
                 libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
-                libglfw3-dev libglew-dev pkg-config libglm-dev
+                libglfw3-dev libglew-dev pkg-config libglm-dev libusb-1.0-0-dev
 
 
 
@@ -44,11 +44,16 @@ cd pcl
 mkdir build && cd build
 mkdir vtk
 
-cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON
-cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON -DVTK_DIR=./vtk
+#cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON
+#cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON -DVTK_DIR=./vtk
+cmake -DCMAKE_BUILD_TYPE=Release       -DBUILD_visualization=OFF       -DBUILD_apps=OFF       -DBUILD_examples=OFF       -DBUILD_tools=OFF ..
 
-make -j$(nproc)
+# compiler en j 1 sinon il y a pas asser de ram et ca explose
+# utiliser tmux pour garder la session en vie et pas avoire un broken pipe
+make -j1
 sudo make install
+
+
 
 
 ### Infos create a tcp socket to read the lidar on anoter pc

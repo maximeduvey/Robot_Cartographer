@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/statistical_outlier_removal.h>
