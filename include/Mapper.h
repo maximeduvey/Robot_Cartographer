@@ -16,8 +16,6 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/kdtree/kdtree.h>
 
-#include <pcl/visualization/pcl_visualizer.h>
-
 #define MAPPER_MAX_FIELD_VIEW 360.0f
 #define MAPPER_MIN_FIELD_VIEW 0.0f
 
