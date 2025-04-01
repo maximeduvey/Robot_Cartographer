@@ -46,7 +46,7 @@ mkdir vtk
 
 #cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON
 #cmake .. -DBUILD_visualization=ON -DWITH_VTK=ON -DVTK_DIR=./vtk
-cmake -DCMAKE_BUILD_TYPE=Release       -DBUILD_visualization=OFF       -DBUILD_apps=OFF       -DBUILD_examples=OFF       -DBUILD_tools=OFF ..
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_visualization=OFF -DBUILD_apps=OFF -DBUILD_examples=OFF -DBUILD_tools=OFF -DCMAKE_INSTALL_PREFIX=/opt/pcl-install ..
 
 # compiler en j 1 sinon il y a pas asser de ram et ca explose
 # utiliser tmux pour garder la session en vie et pas avoire un broken pipe
