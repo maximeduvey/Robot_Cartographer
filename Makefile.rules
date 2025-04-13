@@ -44,7 +44,7 @@ ROBOT_CARTOGRAPHER_VTK_FLAGS = \
 ROBOT_CARTOGRAPHER_OPENGL_FLAGS = -lGL -lGLU -lglut -lglfw -lGLEW
 
 ROBOT_CARTOGRAPHER_COMPILE_FLAGS = -L/usr/lib -L/usr/lib/x86_64-linux-gnu -L$(ROBOT_CARTOGRAPHER_PCL_LIBS_DIR) \
-    -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search -lpcl_visualization \
+    -lpcl_common -lpcl_io -lpcl_filters -lpcl_kdtree -lpcl_segmentation -lpcl_search \
     $(ROBOT_CARTOGRAPHER_OPENGL_FLAGS)
     
 
