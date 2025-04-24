@@ -51,7 +51,7 @@ void OpenGLRenderer::stop()
 
 void OpenGLRenderer::init()
 {
-    if (!glfwInit()) throw std::runtime_error("Failed to initialize GLFW");
+    if (!glfwInit()) throw std::runtime_error("Failed to initialize GLFW !");
 
     _doClearView.store(false);
 

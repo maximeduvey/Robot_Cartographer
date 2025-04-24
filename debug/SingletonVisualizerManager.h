@@ -44,7 +44,8 @@ private:
 
     //pcl::visualization::PCLVisualizer::Ptr viewer; // PCL visualizer
     
-    std::mutex viewerMutex;
+    std::mutex _viewerMutex;
+    std::atomic<bool> _isViewerReady;
     std::shared_ptr<OpenGLRenderer> _viewer;
     std::thread _viewerThread;
     
