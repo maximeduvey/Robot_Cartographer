@@ -7,6 +7,7 @@
 #define CAMERASTATE_PRESET_FOV 75.0f
 #define CAMERASTATE_PRESET_YAW -90.0f
 
+/// used by OpenGl to manage a camera state
 class CameraState {
 public:
     glm::vec3 position;
